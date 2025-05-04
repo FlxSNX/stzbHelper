@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"compress/zlib"
 	"encoding/binary"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"io"
 	"log"
 	"stzbHelper/model"
 	"sync"
@@ -136,25 +133,6 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 					}
 				}
 
-				/*if len(payload) > 18 && buf[17] == 120 && buf[18] == 156 {
-					printdata(buf[17:])
-				} else if len(payload) > 14 && buf[12] == 5 {
-					printdata2(buf[12:])
-				} else if len(payload) > 14 && buf[12] == 2 {
-					fmt.Println(string(buf[12:]))
-				} else {
-					if isDebug == true {
-						fmt.Print("[]byte{")
-						for i, b := range buf {
-							if i > 0 {
-								fmt.Print(", ")
-							}
-							fmt.Print(b)
-						}
-						fmt.Println("}")
-					}
-				}*/
-
 				if isDebug == true {
 					fmt.Println("")
 					fmt.Println("====================================================")
@@ -162,45 +140,6 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 				}
 			}
 		}
-	}
-}
-
-func printdata(data []byte) {
-	fmt.Println("")
-	if data[0] == 120 && data[1] == 156 {
-		compressedReader := bytes.NewReader(data)
-
-		zlibReader, err := zlib.NewReader(compressedReader)
-		if err != nil {
-			fmt.Println("Error creating zlib reader:", err)
-			return
-		}
-		defer zlibReader.Close()
-
-		// Read the uncompressed data
-		uncompressedData, err := io.ReadAll(zlibReader)
-		if err != nil {
-			fmt.Println("Error reading uncompressed data:", err)
-			return
-		}
-
-		fmt.Println(string(uncompressedData))
-	}
-}
-
-func printdata2(data []byte) {
-	fmt.Println("")
-	if data[0] == 5 {
-		// 创建一个新的 []byte 来存储异或结果
-		result := make([]byte, len(data)-1)
-
-		// 对每个字节进行异或操作，并将结果存储到新的切片中
-		for index, value := range data[1:] {
-			result[index] = value ^ 152
-		}
-
-		// 打印结果
-		fmt.Println(string(result))
 	}
 }
 
