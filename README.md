@@ -12,5 +12,6 @@
 - 攻城任务考勤（统计目标成员的主力，拆迁队伍数量和攻城次数)
 ## 构建
 1. 构建前需确保已安装 golang 1.24及以上版本、nodejs  
-2. 到项目的web目录下 执行 `npm install` 安装依赖
-3. 执行 `build.bat`
+2. 执行 `go mod tidy`或者`go mod download` 安装依赖
+3. 到项目的web目录下 执行 `npm install` 安装依赖
+4. 执行 `build.bat`
