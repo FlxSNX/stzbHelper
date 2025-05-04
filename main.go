@@ -70,74 +70,79 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 		log.Printf("无法在接口 %s 上设置过滤器: %v\n", deviceName, err)
 		return
 	}
-
 	// 创建数据包源
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-
-	fullbuf := []byte{}
-	fullsize := 0
 
 	// 循环读取数据包
 	if isDebug == true {
 		fmt.Printf("开始在接口 %s 上捕获 TCP 数据包（端口 8001）...\n", deviceName)
 	}
 	for packet := range packetSource.Packets() {
-		// 解析 TCP 层
-		if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-			// 获取 TCP 数据层（Payload）
-			if appLayer := packet.ApplicationLayer(); appLayer != nil {
-				payload := appLayer.Payload()
-				if len(payload) < 4 {
-					continue
-				}
-				var buf []byte
-				if fullsize > 0 { // 需要组合数据包时
-					if len(payload)+len(fullbuf) < fullsize {
-						fullbuf = append(fullbuf, payload...)
-						continue
-					} else {
-						buf = append(fullbuf, payload...)
-						fullsize = 0
-						fullbuf = []byte{}
-					}
+		handlePacket(packet)
+	}
+}
+
+var fullbuf = []byte{}
+var fullsize = 0
+var waitbuf = false
+
+func handlePacket(packet gopacket.Packet) {
+	// 解析 TCP 层
+	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+		// 获取 TCP 数据层（Payload）
+		if appLayer := packet.ApplicationLayer(); appLayer != nil {
+			//fmt.Println(tcpLayer.(*layers.TCP).PSH, tcpLayer.(*layers.TCP).Ack, tcpLayer.(*layers.TCP).Seq)
+			PSH := tcpLayer.(*layers.TCP).PSH
+			payload := appLayer.Payload()
+			if len(payload) < 8 {
+				return
+			}
+
+			var buf []byte
+			if PSH != true {
+				waitbuf = true
+				fullbuf = append(fullbuf, payload...)
+				return
+			} else {
+				if waitbuf == true {
+					waitbuf = false
+					buf = append(fullbuf, payload...)
+					fullbuf = []byte{}
 				} else {
-					if len(payload) < int(binary.BigEndian.Uint32(payload[:4])) {
-						fullbuf = append(fullbuf, payload...)
-						fullsize = int(binary.BigEndian.Uint32(payload[:4]))
-						continue
-					}
 					buf = payload
 				}
-				if isDebug == true {
-					fmt.Println("")
-					fmt.Println("====================================================")
-					fmt.Println("")
-				}
-				bufread := NewBufferFrom(buf)
-				cmdId2 := bufread.ReadInt()
-				if isDebug == true {
-					fmt.Println("字节", cmdId2)
-				}
-				cmdId := bufread.ReadInt()
-				if isDebug == true {
-					fmt.Println("协议号", cmdId)
-				}
-				if len(buf) > 14 {
-					if isDebug == true {
-						fmt.Println("数据类型", buf[12])
-					}
+			}
 
-					// 只处理类型3的数据
-					if buf[12] == 3 {
-						ParseData(cmdId, buf[17:])
-					}
+			if isDebug == true {
+				fmt.Println("")
+				fmt.Println("====================================================")
+				fmt.Println("")
+			}
+			bufread := NewBufferFrom(buf)
+			bufsize := bufread.ReadInt()
+			if isDebug == true {
+				fmt.Println("包大小", bufsize)
+			}
+			cmdId := bufread.ReadInt()
+			if isDebug == true {
+				fmt.Println("协议号", cmdId)
+			}
+			if len(buf) > 14 {
+				if isDebug == true {
+					fmt.Println("数据类型", buf[12])
 				}
 
-				if isDebug == true {
-					fmt.Println("")
-					fmt.Println("====================================================")
-					fmt.Println("")
+				// 只处理类型3的数据
+				if buf[12] == 3 {
+					// 这里好像不开协程会容易导致数据错乱
+					go ParseData(cmdId, buf[17:])
 				}
+			}
+
+			if isDebug == true {
+				fmt.Println("")
+				fmt.Println("====================================================")
+				fmt.Println("")
 			}
 		}
 	}
