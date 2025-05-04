@@ -42,17 +42,9 @@ func parseTeamUser(data []byte) {
 			ids = append(ids, int(item[0].(float64)))
 		}
 
-		/*teamUsersJson, err := json.Marshal(teamUsers)
-		if err != nil {
-			return
-		}
-		fmt.Println(string(teamUsersJson))*/
 		log.Println("同盟成员消息解析成功！共" + strconv.Itoa(len(teamUsers)) + "人")
 		model.Conn.Save(teamUsers)
 		model.Conn.Not("id", ids).Delete(model.TeamUser{})
-		//var records []model.TeamUser
-		//model.Conn.Not("id", ids).Find(&records)
-		//fmt.Println(records)
 	} else {
 		log.Println("解析同盟成员消息失败")
 	}
