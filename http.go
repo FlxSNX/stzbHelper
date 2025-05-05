@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"io"
 	"log"
 	"stzbHelper/http"
 	"sync"
@@ -10,7 +11,7 @@ import (
 
 func StartHttpService(wait *sync.WaitGroup) {
 	log.Println("HTTP服务启动")
-
+	gin.DefaultWriter = io.Discard
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.Use(cors.Default())
