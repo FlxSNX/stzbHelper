@@ -91,6 +91,7 @@ function splitwid(num) {
                     align-items: center;
                     padding: 0 8px;
                     box-sizing: border-box;">
+                    <router-link class="button" to="/">返回</router-link>
                     <a class="button" @click="getUserList">
                         刷新
                     </a>

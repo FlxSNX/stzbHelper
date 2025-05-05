@@ -1,19 +1,20 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { NDrawerContent,NDrawer,NInput,NFormItem,NList, NSpace, useMessage, NListItem, NTag, NThing, NButton, useDialog,NSelect,NDatePicker } from 'naive-ui'
-import { ApiGetTeamGroup,ApiCreateTask } from '@/api'
+import { NDrawerContent, NDrawer, NInput, NFormItem, NList, NSpace, useMessage, NListItem, NTag, NThing, NButton, useDialog, NSelect, NDatePicker, NPopconfirm, NModal, NCard,NSpin } from 'naive-ui'
+import { ApiGetTeamGroup, ApiCreateTask, ApiGetTaskList, ApiDelTask,ApiEnableGetReport,ApiGetReportNumByTaskId,ApiStatisticsReport } from '@/api'
+import { getRect } from "naive-ui/es/affix/src/utils";
 
 const nmessage = useMessage()
 const dialog = useDialog();
-const teamUsers = ref([]);
-const usersNum = ref(0);
 const addtaskshow = ref(false);
 const targetgroup = ref([])
-const grouplist =ref([]);
+const grouplist = ref([]);
 const tasktime = ref(new Date().getTime());
 const taskname = ref("")
 const taskpos = ref()
 const createing = ref(false)
+const tasks = ref([]);
+const taskNum = ref(0);
 
 const syncuser = () => {
     dialog.info({
@@ -29,24 +30,28 @@ const syncuser = () => {
 
 const createTask = () => {
     createing.value = true;
-    console.log("taskname",taskname.value);
-    console.log("tasktime",tasktime.value);
-    console.log("targetgroup",targetgroup.value);
-    console.log("taskpos",taskpos.value);
+    console.log("taskname", taskname.value);
+    console.log("tasktime", tasktime.value);
+    console.log("targetgroup", targetgroup.value);
+    console.log("taskpos", taskpos.value);
 
     ApiCreateTask({
-        taskname:taskname.value,
-        tasktime:tasktime.value,
-        targetgroup:targetgroup.value,
-        taskpos:taskpos.value,
+        taskname: taskname.value,
+        tasktime: tasktime.value,
+        targetgroup: targetgroup.value,
+        taskpos: taskpos.value,
     }).then(v => {
-        if(v.status == 200){
-            if(v.data.code == 200){
+        if (v.status == 200) {
+            if (v.data.code == 200) {
                 nmessage.success(v.data.msg)
-            }else{
+                taskname.value = "";
+                targetgroup.value = [];
+                taskpos.value = [];
+                getTaskList();
+            } else {
                 nmessage.error(v.data.msg)
             }
-        }else{
+        } else {
             nmessage.error("创建出错")
         }
         createing.value = false;
@@ -56,44 +61,62 @@ const createTask = () => {
     })
 }
 
-function getUserList() {
-    teamUsers.value = [];
-    usersNum.value = 0;
-    ApiGetTeamUser().then(v => {
+const delTask = (id) => {
+    // nmessage.info(id);
+    ApiDelTask(id).then(v => {
+        if (v.status == 200) {
+            if (v.data.code == 200) {
+                nmessage.success(v.data.msg);
+                getTaskList();
+            } else {
+                nmessage.error(v.data.msg);
+            }
+        } else {
+            nmessage.error("任务删除失败" + v.status)
+        }
+    });
+}
+
+function getTaskList() {
+    tasks.value = [];
+    taskNum.value = 0;
+    ApiGetTaskList().then(v => {
         if (v.status == 200) {
             let resp = v.data;
-            let data = resp.data;
-            console.log(data);
-            teamUsers.value = data;
-            usersNum.value = data.length;
+            if (resp.code == 200) {
+                let data = resp.data;
+                tasks.value = data;
+                taskNum.value = data.length;
+            } else {
+                nmessage.error(resp.msg);
+            }
         } else {
-            console.log("请求错误...");
+            nmessage.error("获取任务列表失败");
         }
-    }).catch(e => {
-
     });
 }
 
 onMounted(() => {
     ApiGetTeamGroup().then(v => {
-        if(v.status == 200){
+        if (v.status == 200) {
             let resp = v.data;
             let data = resp.data;
             console.log(data);
             grouplist.value = [];
-            data.forEach(e =>{
+            data.forEach(e => {
                 grouplist.value.push({
                     label: e,
                     value: e
                 });
             });
         }
-    })
+    });
+    getTaskList();
 });
 
 function formatTimestamp(timestamp) {
     // 将秒级时间戳转换为毫秒级
-    const date = new Date(timestamp * 1000);
+    const date = new Date(timestamp);
 
     // 获取年、月、日、时、分、秒
     const year = date.getFullYear();
@@ -123,22 +146,59 @@ function splitwid(num) {
     // 返回结果
     return `${firstPart},${lastFourNumber}`
 }
+
+const showModal = ref(false);
+const getReporting = ref(false);
+const reportNum = ref(0);
+const getReportNumTimer = ref(null);
+const inStatistics = ref(false);
+const curtaskid = ref(0);
+
+const enableGetReport = (id,pos) => {
+    showModal.value = true;
+    ApiEnableGetReport({
+        pos
+    })
+    getReporting.value = true;
+    reportNum.value = 0;
+    curtaskid.value = id;
+    getReportNumTimer.value = setInterval(() => {
+        ApiGetReportNumByTaskId(id).then(v => {
+            if(v.status == 200 && v.data.code == 200){
+                reportNum.value = v.data.data.count;
+            }
+        });
+    },1000);
+}
+
+const statistics = () =>{
+    clearInterval(getReportNumTimer.value);
+    getReporting.value = false;
+    inStatistics.value = true;
+    ApiStatisticsReport(curtaskid.value).then(v => {
+        if(v.data.code == 200){
+            nmessage.success(v.data.msg);
+            showModal.value = false;
+            curtaskid.value = 0;
+        }else{
+            nmessage.error(v.data.msg);
+        }
+        inStatistics.value = false;
+    }).catch(e => {
+        inStatistics.value = false;
+        nmessage.error("统计考勤数据失败:"+e);
+    });
+}
 </script>
 
 <template>
-    <n-drawer v-model:show="addtaskshow" :min-width="512" :max-width="1024" :default-width="512" placement="right" :mask-closable="true" :resizable="true">
+    <n-drawer v-model:show="addtaskshow" :min-width="512" :max-width="1024" :default-width="512" placement="right" :mask-closable="false" :resizable="true">
         <n-drawer-content title="新增任务" :native-scrollbar="false">
             <n-form-item label="任务名称">
                 <n-input v-model:value="taskname" placeholder="例如：内黄LV5 或者你也可以随意填写" />
             </n-form-item>
             <n-form-item label="任务坐标">
-                <n-input
-                    pair
-                    separator="，"
-                    :placeholder="['X坐标','Y坐标']"
-                    v-model:value="taskpos"
-                    clearable
-                />
+                <n-input pair separator="，" :placeholder="['X坐标', 'Y坐标']" v-model:value="taskpos" clearable />
             </n-form-item>
             <n-form-item label="任务时间">
                 <n-date-picker v-model:value="tasktime" type="datetime" />
@@ -146,7 +206,7 @@ function splitwid(num) {
             <n-form-item label="目标分组">
                 <n-select v-model:value="targetgroup" multiple :options="grouplist" placeholder="" />
             </n-form-item>
-            
+
             <n-space>
                 <n-button strong secondary type="primary" :loading="createing" @click="createTask">
                     添加
@@ -157,6 +217,24 @@ function splitwid(num) {
             </n-space>
         </n-drawer-content>
     </n-drawer>
+    <n-modal v-model:show="showModal" class="custom-card" preset="card" title="攻城考勤" size="huge" :bordered="false" style="width:600px" :mask-closable="false">
+        <div>
+            <!-- <n-spin size="large" /> -->
+            <p>请前往游戏中,到攻城任务坐标位置查看同盟战报,并勾选城池守军。然后一直往下滑直到没有战报为止</p>
+            <p>系统只会获取攻城任务时间之后1小时内的战报</p>
+            <h2>已获取 <span style="color: #2080f0;">{{ reportNum }}</span> 封战报</h2>
+        </div>
+        <template #footer>
+            <n-space>
+                <n-button strong secondary type="info" :loading="true" v-if="getReporting">
+                    获取战报中
+                </n-button>
+                <n-button strong secondary type="success" @click="statistics" :loading="inStatistics">
+                    {{ inStatistics ? "统计考勤数据中" : "已获取完战报,开始统计考勤数据" }}
+                </n-button>
+            </n-space>
+        </template>
+    </n-modal>
     <div class="bikamoeapp">
         <div class="bikamoeapp-content">
             <div class="bikamoeapp-title">
@@ -172,14 +250,15 @@ function splitwid(num) {
                     align-items: center;
                     padding: 0 8px;
                     box-sizing: border-box;">
-                    <a class="button" @click="getUserList">
+                    <router-link class="button" to="/">返回</router-link>
+                    <a class="button" @click="getTaskList">
                         刷新
                     </a>
                     <a class="button" @click="addtaskshow = true">
                         新增任务
                     </a>
                     <a class="button">
-                        任务数量:{{ usersNum }}
+                        任务数量:{{ taskNum }}
                     </a>
                 </div>
                 <div>
@@ -202,33 +281,40 @@ function splitwid(num) {
                                 </n-thing>
                             </n-list-item> -->
 
-                        <n-list-item>
+                        <n-list-item v-for="task in tasks">
                             <n-thing content-style="margin-top: 10px;">
                                 <template #header>
-                                    内黄LV5 (361,793)
+                                    {{ task.name }} ({{ splitwid(task.pos) }})
                                 </template>
                                 <n-space style="margin-bottom: 16px;">
-                                    <n-tag type="success">已完成</n-tag>
+                                    <n-tag type="success" v-if="task.status == 1">已完成</n-tag>
+                                    <n-tag type="info" v-if="task.status === 0">待考勤</n-tag>
                                 </n-space>
-                               
-                                <p>目标分组&nbsp;：&nbsp;&nbsp;<n-tag :bordered="false" type="info" size="small">分组1</n-tag></p>
-                                <p>目标人数&nbsp;：&nbsp;&nbsp;50</p>
-                                <p>实到人数&nbsp;：&nbsp;&nbsp;0</p>
-                                <p>任务时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(1746174023) }}</p>
-                                <p>同步时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(1746174023) }}</p>
+
+                                <p>目标分组&nbsp;：&nbsp;
+                                    <n-tag :bordered="false" type="info" size="small" v-for="g in task.target"
+                                        style="margin-right: 8px;">{{ g }}</n-tag>
+                                </p>
+                                <p>目标人数&nbsp;：&nbsp;&nbsp;{{ task.target_user_num }}</p>
+                                <p>实到人数&nbsp;：&nbsp;&nbsp;{{ task.complete_user_num }}</p>
+                                <p>任务时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(task.time) }}</p>
+                                <!-- <p>同步时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(1746174023) }}</p> -->
                                 <n-space style="margin-top: 8px;">
                                     <n-button size="small">
                                         查看详情
                                     </n-button>
-                                    <n-button type="info" size="small">
+                                    <n-button type="info" size="small" @click="enableGetReport(task.id,task.pos)">
                                         开始考勤
                                     </n-button>
                                     <n-button type="info" size="small">
                                         标记为已完成
                                     </n-button>
-                                    <n-button type="error" size="small">
-                                        删除任务
-                                    </n-button>
+                                    <n-popconfirm @positive-click="delTask(task.id)" :show-icon="false">
+                                        <template #trigger>
+                                            <n-button type="error" size="small">删除任务</n-button>
+                                        </template>
+                                        确认删除该任务吗?
+                                    </n-popconfirm>
                                 </n-space>
                             </n-thing>
                         </n-list-item>

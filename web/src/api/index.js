@@ -20,3 +20,23 @@ export function ApiGetTeamGroup(){
 export function ApiCreateTask(data){
     return api.post("createTask",qs.stringify(data,{ arrayFormat: 'repeat' }));
 }
+
+export function ApiGetTaskList(){
+    return api.get("getTaskList");
+}
+
+export function ApiDelTask(id){
+    return api.get(`deleteTask/${id}`);
+}
+
+export function ApiEnableGetReport(data){
+    return api.post("enable/getReport",qs.stringify(data,{ arrayFormat: 'repeat' }));
+}
+
+export function ApiGetReportNumByTaskId(id){
+    return api.get(`getReportNumByTaskId/${id}`);
+}
+
+export function ApiStatisticsReport(id){
+    return api.get(`statisticsReport/${id}`);
+}

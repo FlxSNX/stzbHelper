@@ -17,5 +17,13 @@ func Register(r *gin.RouterGroup) {
 	// 创建任务
 	r.POST("createTask", api.CreateTask)
 	// 删除任务
-	r.POST("deleteTask", api.Example)
+	r.Any("deleteTask/:tid", api.DelTask)
+	// 开启获取战报
+	r.POST("enable/getReport", api.EnableGetReport)
+	// 关闭获取战报
+	r.Any("disable/getReport", api.DisableGetReport)
+	// 获取战报数据
+	r.Any("getReportNumByTaskId/:tid", api.GetReportNumByTaskId)
+	// 统计考勤数据
+	r.Any("statisticsReport/:tid", api.StatisticsReport)
 }

@@ -13,7 +13,7 @@ func InitDB() {
 		panic("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&TeamUser{}, &Task{})
+	err = db.AutoMigrate(&TeamUser{}, &Task{}, &Report{})
 	if err != nil {
 		return
 	}

@@ -6,15 +6,15 @@ import (
 )
 
 type Task struct {
-	Id              int                  `json:"id" gorm:"column:id"`
-	Status          int                  `json:"status" gorm:"column:status"`
-	Name            string               `json:"name" gorm:"column:name"`
-	Time            int                  `json:"time" gorm:"column:time"`
-	Pos             int                  `json:"pos" gorm:"column:pos"`
-	Target          []string             `json:"target" gorm:"column:target;serializer:json"`
-	TargetUserNum   int                  `json:"target_user_num" gorm:"column:target_user_num"`
-	CompleteUserNum int                  `json:"complete_user_num" gorm:"column:complete_user_num"`
-	UserList        map[int]TaskUserList `json:"user_list,omitempty" gorm:"column:user_list;serializer:json"`
+	Id              int                   `json:"id" gorm:"column:id"`
+	Status          int                   `json:"status" gorm:"column:status"`
+	Name            string                `json:"name" gorm:"column:name"`
+	Time            int                   `json:"time" gorm:"column:time"`
+	Pos             int                   `json:"pos" gorm:"column:pos"`
+	Target          []string              `json:"target" gorm:"column:target;serializer:json"`
+	TargetUserNum   int                   `json:"target_user_num" gorm:"column:target_user_num"`
+	CompleteUserNum int                   `json:"complete_user_num" gorm:"column:complete_user_num"`
+	UserList        map[int]*TaskUserList `json:"user_list,omitempty" gorm:"column:user_list;serializer:json"`
 }
 
 type TaskUserList struct {
@@ -31,10 +31,10 @@ func (Task) TableName() string {
 	return "task"
 }
 
-func TeamUserListToTaskUserList(data []TeamUser) map[int]TaskUserList {
-	taskUserList := map[int]TaskUserList{}
+func TeamUserListToTaskUserList(data []TeamUser) map[int]*TaskUserList {
+	taskUserList := map[int]*TaskUserList{}
 	for _, user := range data {
-		taskUserList[user.Id] = TaskUserList{
+		taskUserList[user.Id] = &TaskUserList{
 			Id:         user.Id,
 			Name:       user.Name,
 			Group:      user.Group,

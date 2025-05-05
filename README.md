@@ -2,7 +2,7 @@
 率土之滨攻城考勤助手  
 正在开发中...
 ## 使用说明
-本程序依赖于 [Npcap](https://npcap.com/#download) 抓取网络数据包来获取战报于同盟成员信息, 所以你在使用前需要先安装Npcap(https://npcap.com/dist/npcap-1.82.exe)  
+本程序依赖于 [Npcap](https://npcap.com/#download) 抓取网络数据包来获取战报与同盟成员信息, 所以你在使用前需要先安装Npcap(https://npcap.com/dist/npcap-1.82.exe)  
 ## 支持情况
 - PC客户端
 - 模拟器移动端客户端
