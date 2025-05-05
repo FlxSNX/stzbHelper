@@ -13,7 +13,7 @@ func Register(r *gin.RouterGroup) {
 	// 获取任务列表
 	r.Any("getTaskList", api.GetTaskList)
 	// 获取任务详情
-	r.Any("getTask/:tid", api.Example)
+	r.Any("getTask/:tid", api.GetTask)
 	// 创建任务
 	r.POST("createTask", api.CreateTask)
 	// 删除任务

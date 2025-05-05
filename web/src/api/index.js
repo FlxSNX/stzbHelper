@@ -40,3 +40,7 @@ export function ApiGetReportNumByTaskId(id){
 export function ApiStatisticsReport(id){
     return api.get(`statisticsReport/${id}`);
 }
+
+export function ApiGetTask(id){
+    return api.get(`getTask/${id}`);
+}

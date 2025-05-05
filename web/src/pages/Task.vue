@@ -1,8 +1,9 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { NDrawerContent, NDrawer, NInput, NFormItem, NList, NSpace, useMessage, NListItem, NTag, NThing, NButton, useDialog, NSelect, NDatePicker, NPopconfirm, NModal, NCard,NSpin } from 'naive-ui'
-import { ApiGetTeamGroup, ApiCreateTask, ApiGetTaskList, ApiDelTask,ApiEnableGetReport,ApiGetReportNumByTaskId,ApiStatisticsReport } from '@/api'
+import { NDrawerContent, NDrawer, NInput, NFormItem, NList, NSpace, useMessage, NListItem, NTag, NThing, NButton, useDialog, NSelect, NDatePicker, NPopconfirm, NModal, NCard,NSpin,NTable } from 'naive-ui'
+import { ApiGetTeamGroup, ApiCreateTask, ApiGetTaskList, ApiDelTask,ApiEnableGetReport,ApiGetReportNumByTaskId,ApiStatisticsReport,ApiGetTask } from '@/api'
 import { getRect } from "naive-ui/es/affix/src/utils";
+import * as XLSX from 'xlsx';
 
 const nmessage = useMessage()
 const dialog = useDialog();
@@ -180,6 +181,7 @@ const statistics = () =>{
             nmessage.success(v.data.msg);
             showModal.value = false;
             curtaskid.value = 0;
+            getTaskList()
         }else{
             nmessage.error(v.data.msg);
         }
@@ -189,6 +191,55 @@ const statistics = () =>{
         nmessage.error("统计考勤数据失败:"+e);
     });
 }
+
+const showModal2 = ref(false);
+const taskDetail = ref({})
+const getTask = (id) => {
+    taskDetail.value = {};
+    showModal2.value = true;
+    ApiGetTask(id).then(v => {
+        if(v.data.code == 200){
+            taskDetail.value = v.data.data;
+        }else{
+            nmessage.error(v.data.msg);
+        }
+    }).catch(e => {
+        nmessage.error("获取考勤数据失败:"+e);
+    });
+}
+
+const exportExcel = () => {
+	let data = [];
+	data.push([
+		"名字",
+		"分组",
+		"主力",
+		"拆迁",
+		"主力次数",
+		"拆迁次数",
+	]);
+
+    Object.values(taskDetail.value.user_list).forEach(v => {
+        data.push([
+            v.name,
+            v.group,
+            v.atk_team_num,
+            v.dis_team_num,
+            v.atk_num,
+            v.dis_num
+        ]);
+    });
+	
+	// 创建工作表
+	const ws = XLSX.utils.aoa_to_sheet(data);
+
+	// 创建工作簿
+	const wb = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(wb, ws, 'Sheet1'); // 工作表名称
+
+	// 生成 Excel 文件并下载
+	XLSX.writeFile(wb, `${taskDetail.value.name}考勤表.xlsx`); // 文件名
+};
 </script>
 
 <template>
@@ -234,6 +285,46 @@ const statistics = () =>{
                 </n-button>
             </n-space>
         </template>
+    </n-modal>
+    <n-modal v-model:show="showModal2" class="custom-card" preset="card" title="考勤详情" size="huge" :bordered="false" style="width:1024px"  :mask-closable="false">
+        <div>
+            <!-- <n-spin size="large" /> -->
+            <n-button strong secondary type="info" style="margin-bottom: 8px;" @click="exportExcel">
+                导出为表格
+            </n-button>
+            <n-table>
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>分组</th>
+                        <th>主力</th>
+                        <th>拆迁</th>
+                        <th>主力次数</th>
+                        <th>拆迁次数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="u in taskDetail.user_list">
+                        <td>{{ u.name }}</td>
+                        <td>{{ u.group }}</td>
+                        <td>{{ u.atk_team_num }}</td>
+                        <td>{{ u.dis_team_num }}</td>
+                        <td>{{ u.atk_num }}</td>
+                        <td>{{ u.dis_num }}</td>
+                    </tr>
+                </tbody>
+            </n-table>
+        </div>
+        <!-- <template #footer>
+            <n-space>
+                <n-button strong secondary type="info" :loading="true" v-if="getReporting">
+                    获取战报中
+                </n-button>
+                <n-button strong secondary type="success" @click="statistics" :loading="inStatistics">
+                    {{ inStatistics ? "统计考勤数据中" : "已获取完战报,开始统计考勤数据" }}
+                </n-button>
+            </n-space>
+        </template> -->
     </n-modal>
     <div class="bikamoeapp">
         <div class="bikamoeapp-content">
@@ -286,10 +377,10 @@ const statistics = () =>{
                                 <template #header>
                                     {{ task.name }} ({{ splitwid(task.pos) }})
                                 </template>
-                                <n-space style="margin-bottom: 16px;">
+                                <!-- <n-space style="margin-bottom: 16px;">
                                     <n-tag type="success" v-if="task.status == 1">已完成</n-tag>
                                     <n-tag type="info" v-if="task.status === 0">待考勤</n-tag>
-                                </n-space>
+                                </n-space> -->
 
                                 <p>目标分组&nbsp;：&nbsp;
                                     <n-tag :bordered="false" type="info" size="small" v-for="g in task.target"
@@ -300,8 +391,8 @@ const statistics = () =>{
                                 <p>任务时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(task.time) }}</p>
                                 <!-- <p>同步时间&nbsp;：&nbsp;&nbsp;{{ formatTimestamp(1746174023) }}</p> -->
                                 <n-space style="margin-top: 8px;">
-                                    <n-button size="small">
-                                        查看详情
+                                    <n-button size="small" @click="getTask(task.id)">
+                                        考勤详情
                                     </n-button>
                                     <n-button type="info" size="small" @click="enableGetReport(task.id,task.pos)">
                                         开始考勤

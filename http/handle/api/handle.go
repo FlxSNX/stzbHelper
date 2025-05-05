@@ -152,7 +152,7 @@ func GetReportNumByTaskId(c *gin.Context) {
 
 	var task model.Task
 
-	query := model.Conn.Find(&task, tidint)
+	query := model.Conn.Last(&task, tidint)
 
 	if query.Error == nil {
 		var taskNum int64
@@ -185,9 +185,10 @@ func StatisticsReport(c *gin.Context) {
 
 	var task model.Task
 
-	query := model.Conn.Find(&task, tidint)
-
+	query := model.Conn.Last(&task, tidint)
+	//fmt.Println(task, query.Error)
 	if query.Error == nil {
+		task.CompleteUserNum = 0
 		for id, t := range task.UserList {
 			var Num int64
 			model.Conn.Model(model.Report{}).Where(model.Report{Wid: task.Pos, AttackName: t.Name}).Count(&Num)
@@ -212,6 +213,9 @@ func StatisticsReport(c *gin.Context) {
 			task.UserList[id].DisNum = int(DisNum)
 			task.UserList[id].AtkTeamNum = int(AtkTeamNum)
 			task.UserList[id].DisTeamNum = int(DisTeamNum)
+			if AtkNum != 0 || DisNum != 0 {
+				task.CompleteUserNum++
+			}
 		}
 		save := model.Conn.Save(&task)
 		if save.RowsAffected != 0 {
@@ -223,6 +227,33 @@ func StatisticsReport(c *gin.Context) {
 				common.Response{Message: "统计考勤数据失败"}.Error(c)
 			}
 		}
+	} else {
+		common.Response{Message: "获取任务失败"}.Error(c)
+		return
+	}
+}
+
+func GetTask(c *gin.Context) {
+	tid := c.Param("tid")
+
+	if tid == "" {
+		common.Response{Message: "任务ID错误"}.Error(c)
+		return
+	}
+
+	tidint, err := strconv.Atoi(tid)
+
+	if err != nil {
+		common.Response{Message: "任务ID错误"}.Error(c)
+		return
+	}
+
+	var task model.Task
+
+	query := model.Conn.Last(&task, tidint)
+	//fmt.Println(task, query.Error)
+	if query.Error == nil {
+		common.Response{Data: task}.Success(c)
 	} else {
 		common.Response{Message: "获取任务失败"}.Error(c)
 		return
