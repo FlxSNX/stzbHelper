@@ -2,6 +2,7 @@
 import { ref,onMounted } from "vue";
 import { NList, NSpace, useMessage, NListItem, NTag, NThing, NButton,useDialog  } from 'naive-ui'
 import { ApiGetTeamUser } from '@/api'
+import * as XLSX from 'xlsx';
 
 const dialog = useDialog();
 const teamUsers = ref([]);
@@ -36,6 +37,43 @@ function getUserList(){
 
     });
 }
+
+const exportExcel = () => {
+	let data = [];
+	data.push([
+		"名字",
+		"分组",
+		"势力",
+		"本周武勋",
+		"总贡献",
+		"周贡献",
+		"位置",
+		"进盟时间",
+	]);
+
+    Object.values(teamUsers.value).forEach(v => {
+        data.push([
+            v.name,
+            v.group,
+            v.power,
+            v.wu,
+            v.contribute_total,
+            v.contribute_week,
+            splitwid(v.pos),
+            formatTimestamp(v.join_time),
+        ]);
+    });
+	
+	// 创建工作表
+	const ws = XLSX.utils.aoa_to_sheet(data);
+
+	// 创建工作簿
+	const wb = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(wb, ws, 'Sheet1'); // 工作表名称
+
+	// 生成 Excel 文件并下载
+	XLSX.writeFile(wb, `${formatTimestamp(parseInt(new Date().getTime() / 1000))}同盟成员表.xlsx`); // 文件名
+};
 
 onMounted(() => {
     getUserList()
@@ -98,6 +136,9 @@ function splitwid(num) {
                     <a class="button" @click="syncuser">
                         同步成员
                     </a>
+                    <a class="button" @click="exportExcel">
+                        导出表格
+                    </a>
                     <a class="button">
                         成员数量:{{ usersNum }}
                     </a>
@@ -116,7 +157,7 @@ function splitwid(num) {
                                     <!-- <n-space size="small" style="margin-top: 4px"> -->
                                         <p>ID：{{ user.id }}</p>
                                         <p>势力：{{ user.power }}</p>
-                                        <p>武勋：{{ user.wu }}</p>
+                                        <p>周武勋：{{ user.wu }}</p>
                                         <p>总贡献：{{ user.contribute_total }}</p>
                                         <p>周贡献：{{ user.contribute_week }}</p>
                                         <p>位置：({{ splitwid(user.pos) }})</p>

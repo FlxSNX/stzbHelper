@@ -271,8 +271,8 @@ const exportExcel = () => {
     <n-modal v-model:show="showModal" class="custom-card" preset="card" title="攻城考勤" size="huge" :bordered="false" style="width:600px" :mask-closable="false">
         <div>
             <!-- <n-spin size="large" /> -->
-            <p>请前往游戏中,到攻城任务坐标位置查看同盟战报,并勾选城池守军。然后一直往下滑直到没有战报为止</p>
-            <p>系统只会获取攻城任务时间之后1小时内的战报</p>
+            <p>请前往游戏中,到攻城任务坐标位置查看同盟战报,并勾选守城军士(否则获取不了拆迁战报)。然后一直往下滑直到没有战报为止</p>
+            <p>系统只会获取攻城任务时间之后1小时内的战报(暂无实现时间限制)</p>
             <h2>已获取 <span style="color: #2080f0;">{{ reportNum }}</span> 封战报</h2>
         </div>
         <template #footer>
