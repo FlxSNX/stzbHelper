@@ -18,7 +18,7 @@ QQ交流群855494233
 2. 执行 `go mod tidy`或者`go mod download` 安装依赖
 3. 到项目的web目录下 执行 `npm install` 安装依赖
 4. 执行 `build.bat`
-5. 如无法正常执行`build.bat`,请改为手动执行前后端build指令。先进入web目录执行`npm run build`,然后返回项目根目录执行`go build -tags="nomsgpack" -ldflags="-s -w" -o dist\stzbHelper-windows-amd64.exe stzbHelper`
+5. 如无法正常执行`build.bat`,请手动执行前后端build指令。先进入web目录执行`npm run build`,然后返回项目根目录执行`go build -tags="nomsgpack" -ldflags="-s -w" -o dist\stzbHelper-windows-amd64.exe stzbHelper`
 ## 开发说明
 将`main.go`中的`isDebug`改为`true`再重新编译运行 就可以在打印中看到来自率土服务器类型为3的数据包  
 你可以在打印中寻找一些数据包来开发其他功能  
