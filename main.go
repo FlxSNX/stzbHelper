@@ -12,6 +12,7 @@ import (
 )
 
 var isDebug bool = false
+var version string = "0.0.2"
 
 func main() {
 	// 获取所有网络接口
@@ -41,6 +42,7 @@ func main() {
 	wg.Add(1)
 	// 遍历所有接口并启动 Goroutine 监听
 	log.Println("stzbHelper开始运行!")
+	log.Println("version:", version)
 
 	for _, device := range devices {
 		wg.Add(1)

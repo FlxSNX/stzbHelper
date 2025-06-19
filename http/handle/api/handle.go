@@ -260,6 +260,79 @@ func GetTask(c *gin.Context) {
 	}
 }
 
+func GetGroupWu(c *gin.Context) {
+	type GroupWuStats struct {
+		Group       string `json:"group"`
+		MemberCount int    `json:"member_count"`
+		TotalWu     int    `json:"total_wu"`
+		AverageWu   int    `json:"average_wu"`
+		ZeroWuCount int    `json:"zero_wu_count"`
+	}
+
+	var stats []GroupWuStats
+
+	subQuery := model.Conn.Model(&model.TeamUser{}).
+		Select("`group`, COUNT(*) as zero_wu_count").
+		Where("wu = 0").
+		Group("`group`")
+
+	err := model.Conn.Model(&model.TeamUser{}).
+		Select("`team_user`.`group`, SUM(wu) as total_wu, ROUND(AVG(wu)) as average_wu, IFNULL(sub.zero_wu_count, 0) as zero_wu_count, COUNT(*) as member_count").
+		Joins("LEFT JOIN (?) as sub ON sub.`group` = `team_user`.`group`", subQuery).
+		Group("`team_user`.`group`").
+		Order("total_wu DESC").
+		Scan(&stats).Error
+
+	if err != nil {
+		common.Response{Message: "查询失败: " + err.Error()}.Error(c)
+		return
+	}
+
+	common.Response{Data: stats}.Success(c)
+}
+
+func DelTaskReport(c *gin.Context) {
+
+	tid := c.Param("tid")
+
+	if tid == "" {
+		common.Response{Message: "任务ID错误"}.Error(c)
+		return
+	}
+
+	tidint, err := strconv.Atoi(tid)
+
+	if err != nil {
+		common.Response{Message: "任务ID错误"}.Error(c)
+		return
+	}
+
+	var task model.Task
+
+	query := model.Conn.Last(&task, tidint)
+
+	if query.Error == nil {
+		action := model.Conn.Delete(&model.Report{}, "wid = ?", task.Pos)
+
+		if action.RowsAffected != 0 {
+			common.Response{Message: "清理战报成功", Data: action.RowsAffected}.Success(c)
+		} else {
+			//fmt.Println(action.Error, task.Pos)
+			if action.Error != nil {
+				common.Response{Message: "删除失败", Data: action.Error.Error()}.Error(c)
+				return
+			} else {
+				common.Response{Message: "清理失败,可能战报已清理"}.Error(c)
+				return
+			}
+		}
+		//common.Response{Message: "清理战报成功"}.Success(c)
+	} else {
+		common.Response{Message: "清理任务战报失败"}.Error(c)
+		return
+	}
+}
+
 func Example(c *gin.Context) {
 	common.Response{Message: "This is example func"}.Success(c)
 }

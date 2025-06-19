@@ -1,5 +1,5 @@
 <script setup>
-import { Star, Link, Server, KeyRound, Plus, BotMessageSquare,Users,ClipboardList } from 'lucide-vue-next';
+import { Star, Link, Server, KeyRound, Plus, BotMessageSquare,Users,ClipboardList,Swords } from 'lucide-vue-next';
 import { ref } from "vue";
 const isLogin = ref(true);
 </script>
@@ -9,6 +9,7 @@ const isLogin = ref(true);
         <div class="bikamoeapp-content">
             <div class="bikamoeapp-title">
                 <h2 style="margin-bottom: 4px;">攻城考勤助手</h2>
+                <p>Version: 0.0.2</p>
             </div>
             <div class="bikamoeapp-list" v-if="isLogin">
                 <div class="bikamoeapp-appitem-warp">
@@ -33,22 +34,16 @@ const isLogin = ref(true);
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="bikamoeapp-login" v-else>
-                <!-- <img src="https://cdn.fastly.steamstatic.com/steamcommunity/public/images/items/1406990/915b1b4a05133186525a956d7ca5c142a3c3c9f3.webm" alt=""> -->
-                <div class="login-box">
-                    <h2 style="line-height: 48px;">Login</h2>
-                    <p style="font-size: 13px;color: #71717a;">Enter your username below to login to your account.</p>
-                    <div class="input-box">
-                        <label>UserName</label>
-                        <input type="text" />
+                <div class="bikamoeapp-appitem-warp">
+                    <div class="item">
+                        <div class="icon">
+                            <Swords :size="64" />
+                        </div>
+                        <div class="bottom">
+                            <div class="name">分组武勋</div>
+                            <router-link class="button" to="/groupWu">进入</router-link>
+                        </div>
                     </div>
-                    <div class="input-box">
-                        <label>PassWord</label>
-                        <input type="password" />
-                    </div>
-                    <a class="button">Login</a>
                 </div>
             </div>
         </div>

@@ -6,7 +6,7 @@ const baseURL = 'http://localhost:9527/v1';
 
 const api = axios.create({
     baseURL:baseURL,
-    timeout: 5000
+    timeout: 1000 * 180
 });
 
 export function ApiGetTeamUser(){
@@ -23,6 +23,10 @@ export function ApiCreateTask(data){
 
 export function ApiGetTaskList(){
     return api.get("getTaskList");
+}
+
+export function ApiGetGroupWu(){
+    return api.get("getGroupWu");
 }
 
 export function ApiDelTask(id){
@@ -43,4 +47,8 @@ export function ApiStatisticsReport(id){
 
 export function ApiGetTask(id){
     return api.get(`getTask/${id}`);
+}
+
+export function ApiDelTaskReport(id){
+    return api.get(`deleteTaskReport/${id}`);
 }

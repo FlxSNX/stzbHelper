@@ -26,4 +26,7 @@ func Register(r *gin.RouterGroup) {
 	r.Any("getReportNumByTaskId/:tid", api.GetReportNumByTaskId)
 	// 统计考勤数据
 	r.Any("statisticsReport/:tid", api.StatisticsReport)
+	r.Any("getGroupWu", api.GetGroupWu)
+	// 删除任务战报
+	r.Any("deleteTaskReport/:tid", api.DelTaskReport)
 }

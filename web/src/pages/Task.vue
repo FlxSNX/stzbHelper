@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { NDrawerContent, NDrawer, NInput, NFormItem, NList, NSpace, useMessage, NListItem, NTag, NThing, NButton, useDialog, NSelect, NDatePicker, NPopconfirm, NModal, NCard,NSpin,NTable } from 'naive-ui'
-import { ApiGetTeamGroup, ApiCreateTask, ApiGetTaskList, ApiDelTask,ApiEnableGetReport,ApiGetReportNumByTaskId,ApiStatisticsReport,ApiGetTask } from '@/api'
+import { ApiGetTeamGroup, ApiCreateTask, ApiGetTaskList, ApiDelTask,ApiEnableGetReport,ApiGetReportNumByTaskId,ApiStatisticsReport,ApiGetTask,ApiDelTaskReport } from '@/api'
 import { getRect } from "naive-ui/es/affix/src/utils";
 import * as XLSX from 'xlsx';
 
@@ -16,18 +16,6 @@ const taskpos = ref()
 const createing = ref(false)
 const tasks = ref([]);
 const taskNum = ref(0);
-
-const syncuser = () => {
-    dialog.info({
-        title: '信息',
-        content: '请前往游戏中,点开同盟成员列表即可同步',
-        positiveText: '确认',
-        transformOrigin: "center",
-        onPositiveClick: () => {
-
-        }
-    })
-}
 
 const createTask = () => {
     createing.value = true;
@@ -65,6 +53,21 @@ const createTask = () => {
 const delTask = (id) => {
     // nmessage.info(id);
     ApiDelTask(id).then(v => {
+        if (v.status == 200) {
+            if (v.data.code == 200) {
+                nmessage.success(v.data.msg);
+                getTaskList();
+            } else {
+                nmessage.error(v.data.msg);
+            }
+        } else {
+            nmessage.error("任务删除失败" + v.status)
+        }
+    });
+}
+
+const delTaskReport = (id) => {
+    ApiDelTaskReport(id).then(v => {
         if (v.status == 200) {
             if (v.data.code == 200) {
                 nmessage.success(v.data.msg);
@@ -272,7 +275,7 @@ const exportExcel = () => {
         <div>
             <!-- <n-spin size="large" /> -->
             <p>请前往游戏中,到攻城任务坐标位置查看同盟战报,并勾选守城军士(否则获取不了拆迁战报)。然后一直往下滑直到没有战报为止</p>
-            <p>系统只会获取攻城任务时间之后1小时内的战报(暂无实现时间限制)</p>
+            <p>系统只会获取攻城任务时间之后1小时内的战报(暂未实现时间限制)</p>
             <h2>已获取 <span style="color: #2080f0;">{{ reportNum }}</span> 封战报</h2>
         </div>
         <template #footer>
@@ -397,9 +400,14 @@ const exportExcel = () => {
                                     <n-button type="info" size="small" @click="enableGetReport(task.id,task.pos)">
                                         开始考勤
                                     </n-button>
-                                    <n-button type="info" size="small">
-                                        标记为已完成
-                                    </n-button>
+                                    <n-popconfirm @positive-click="delTaskReport(task.id)" :show-icon="false">
+                                        <template #trigger>
+                                            <n-button type="error" size="small">
+                                                清理战报
+                                            </n-button>
+                                        </template>
+                                        确认清理战报吗? 数据删除后无法恢复。<br>清理战报可以减少统计考勤的耗时
+                                    </n-popconfirm>
                                     <n-popconfirm @positive-click="delTask(task.id)" :show-icon="false">
                                         <template #trigger>
                                             <n-button type="error" size="small">删除任务</n-button>
