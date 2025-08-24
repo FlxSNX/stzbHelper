@@ -37,7 +37,7 @@ func main() {
 	// 使用 WaitGroup 等待所有 Goroutine 完成
 	var wg sync.WaitGroup
 
-	model.InitDB()
+	model.InitDB("database")
 	go StartHttpService(&wg)
 	wg.Add(1)
 	// 遍历所有接口并启动 Goroutine 监听
