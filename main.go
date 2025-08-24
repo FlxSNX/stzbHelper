@@ -2,17 +2,20 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"log"
+	"strconv"
+	"stzbHelper/global"
 	"stzbHelper/model"
 	"sync"
 )
 
 var isDebug bool = false
-var version string = "0.0.2"
+var version string = "0.0.3"
 
 func main() {
 	// 获取所有网络接口
@@ -43,6 +46,8 @@ func main() {
 	// 遍历所有接口并启动 Goroutine 监听
 	log.Println("stzbHelper开始运行!")
 	log.Println("version:", version)
+	//log.Println("提示：0.0.3版本开始启动软件后需要进入游戏点击自己的主公簿进行激活软件。此改动是为了之后实现多数据库与绑定游戏连接IP信息，避免出现连接到多个8001端口导致的数据错乱")
+	//log.Println("等待打开主公簿激活软件...")
 
 	for _, device := range devices {
 		wg.Add(1)
@@ -87,17 +92,43 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 var fullbuf = []byte{}
 var fullsize = 0
 var waitbuf = false
+var onlySrcIp = ""
+var onlyDstIp = ""
 
 func handlePacket(packet gopacket.Packet) {
-	// 解析 TCP 层
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-		// 获取 TCP 数据层（Payload）
 		if appLayer := packet.ApplicationLayer(); appLayer != nil {
-			//fmt.Println(tcpLayer.(*layers.TCP).PSH, tcpLayer.(*layers.TCP).Ack, tcpLayer.(*layers.TCP).Seq)
 			PSH := tcpLayer.(*layers.TCP).PSH
 			payload := appLayer.Payload()
 			if len(payload) < 8 {
 				return
+			}
+			var srcIP string
+			var dstIP string
+			var srcProt int
+			var dstProt int
+			if ipLayer := packet.NetworkLayer(); ipLayer != nil {
+				switch ip := ipLayer.(type) {
+				case *layers.IPv4:
+					srcProt = int(tcpLayer.(*layers.TCP).SrcPort)
+					dstProt = int(tcpLayer.(*layers.TCP).DstPort)
+					srcIP = ip.SrcIP.String() + ":" + strconv.Itoa(srcProt)
+					dstIP = ip.DstIP.String() + ":" + strconv.Itoa(dstProt)
+				case *layers.IPv6:
+					srcProt = int(tcpLayer.(*layers.TCP).SrcPort)
+					dstProt = int(tcpLayer.(*layers.TCP).DstPort)
+					srcIP = ip.SrcIP.String() + ":" + strconv.Itoa(srcProt)
+					dstIP = ip.DstIP.String() + ":" + strconv.Itoa(dstProt)
+				}
+			}
+
+			if global.ExVar.BindIpInfo == true && onlySrcIp != "" && onlyDstIp != "" {
+				if onlySrcIp != srcIP || onlyDstIp != dstIP {
+					if isDebug == true {
+						fmt.Println("IP信息不符合跳过数据处理")
+					}
+					return
+				}
 			}
 
 			var buf []byte
@@ -129,15 +160,40 @@ func handlePacket(packet gopacket.Packet) {
 			if isDebug == true {
 				fmt.Println("协议号", cmdId)
 			}
+
 			if len(buf) > 14 {
 				if isDebug == true {
 					fmt.Println("数据类型", buf[12])
 				}
 
-				// 只处理类型3的数据
 				if buf[12] == 3 {
-					// 这里好像不开协程会容易导致数据错乱
 					go ParseData(cmdId, buf[17:])
+				} else if buf[12] == 5 {
+					if cmdId == 3686 {
+						data := DecodeType5(buf[12:])
+						var raw []interface{}
+						err := json.Unmarshal([]byte(data), &raw)
+						if err != nil {
+							log.Fatal(err)
+						} else {
+							dataMap := raw[1].(map[string]interface{})
+
+							if server, ok := dataMap["server"].([]interface{}); ok {
+								log.Printf("服务器信息: %v\n", server)
+							}
+
+							if logData, ok := dataMap["log"].(map[string]interface{}); ok {
+								roleName := logData["role_name"].(string)
+								log.Printf("角色名: %s\n", roleName)
+							}
+
+							log.Println("本地IP：" + dstIP)
+							log.Println("游戏服务器IP：" + srcIP)
+							//log.Println("软件将绑定以上IP进行数据过滤以避免数据错乱，如果当更换了账号或网络问题导致连接IP发送变化需要在软件网页上点击刷新IP信息然后重新打开主公簿进行绑定")
+							onlySrcIp = srcIP
+							onlyDstIp = dstIP
+						}
+					}
 				}
 			}
 

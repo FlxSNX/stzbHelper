@@ -35,12 +35,10 @@ func staticRoute(r *gin.Engine) {
 			reqpath = reqpath[:len(reqpath)-1]
 		}
 
-		//logger.Info("Trying to open file: " + path[1:]) // 添加日志输出
 		// 尝试打开静态文件
 		file, err := assetsFS.Open(reqpath[1:])
 
 		if errors.Is(err, fs.ErrNotExist) {
-			//logger.Info("File not found: " + path[1:]) // 添加日志输出
 			// 文件不存在，返回自定义404
 			c.JSON(404, gin.H{
 				"message": "404 - Page Not Found",

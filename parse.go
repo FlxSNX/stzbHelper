@@ -24,6 +24,19 @@ func ParseData(cmdId int, data []byte) {
 	}
 }
 
+func DecodeType5(data []byte) string {
+	if data[0] == 5 {
+		result := make([]byte, len(data)-1)
+
+		for index, value := range data[1:] {
+			result[index] = value ^ 152
+		}
+
+		return string(result)
+	}
+	return ""
+}
+
 func parseReport(data []byte) {
 	log.Println("收到同盟战报消息")
 	if global.ExVar.NeedGetReport == false {
@@ -64,18 +77,6 @@ func parseReport(data []byte) {
 			action := model.Conn.Save(&neededreports)
 			fmt.Println("数据库共新增" + strconv.Itoa(int(action.RowsAffected)) + "条战报")
 		}
-
-		//fmt.Println(jsondata[0])
-		//var ids []int
-		//var teamUsers []model.TeamUser
-		//for _, item := range jsondata {
-		//	teamUsers = append(teamUsers, model.ToTeamUser(item))
-		//	ids = append(ids, int(item[0].(float64)))
-		//}
-		//
-		//log.Println("同盟成员消息解析成功！共" + strconv.Itoa(len(teamUsers)) + "人")
-		//model.Conn.Save(teamUsers)
-		//model.Conn.Not("id", ids).Delete(model.TeamUser{})
 	} else {
 		log.Println("解析同盟战报消息失败")
 	}
@@ -121,7 +122,6 @@ func parseZlibData(data []byte) []byte {
 		}
 		defer zlibReader.Close()
 
-		// Read the uncompressed data
 		uncompressedData, err := io.ReadAll(zlibReader)
 		if err != nil {
 			fmt.Println("Error reading uncompressed data:", err)

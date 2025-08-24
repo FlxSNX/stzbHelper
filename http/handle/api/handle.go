@@ -26,15 +26,8 @@ func GetTeamGroup(c *gin.Context) {
 }
 
 func CreateTask(c *gin.Context) {
-	//group := c.PostForm("group")
-	//if group == "" {
-	//	common.Response{}.Error(c)
-	//}
-
-	// 获取普通字段
 	taskName := c.PostForm("taskname")
 	taskTime := c.PostForm("tasktime")
-	// 获取数组字段
 	targetGroup := c.PostFormArray("targetgroup")
 	taskPos := c.PostFormArray("taskpos")
 
@@ -53,9 +46,6 @@ func CreateTask(c *gin.Context) {
 	var users []model.TeamUser
 	model.Conn.Where("`group` IN ?", targetGroup).Find(&users)
 	taskUserList := model.TeamUserListToTaskUserList(users)
-	//fmt.Println(test)
-	//common.Response{Data: taskUserList}.Success(c)
-	//return
 
 	if len(users) <= 0 {
 		common.Response{Message: "创建出错:目标人数为0"}.Error(c)
@@ -186,7 +176,6 @@ func StatisticsReport(c *gin.Context) {
 	var task model.Task
 
 	query := model.Conn.Last(&task, tidint)
-	//fmt.Println(task, query.Error)
 	if query.Error == nil {
 		task.CompleteUserNum = 0
 		for id, t := range task.UserList {
