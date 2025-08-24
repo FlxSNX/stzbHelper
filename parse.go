@@ -13,7 +13,7 @@ import (
 )
 
 func ParseData(cmdId int, data []byte) {
-	if isDebug == true {
+	if global.IsDebug == true {
 		log.Println("收到[" + strconv.Itoa(cmdId) + "]消息:" + string(parseZlibData(data)))
 	}
 
@@ -84,7 +84,7 @@ func parseReport(data []byte) {
 
 func parseTeamUser(data []byte) {
 	log.Println("收到同盟成员消息")
-	if isDebug == true {
+	if global.IsDebug == true {
 		log.Println(string(parseZlibData(data)))
 	}
 

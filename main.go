@@ -14,9 +14,6 @@ import (
 	"sync"
 )
 
-var isDebug bool = false
-var version string = "0.0.3"
-
 func main() {
 	// 获取所有网络接口
 	devices, err := pcap.FindAllDevs()
@@ -29,7 +26,7 @@ func main() {
 		log.Fatal("未找到可用的网络接口")
 	}
 
-	if isDebug == true {
+	if global.IsDebug == true {
 		// 打印所有可用的网络接口
 		fmt.Println("可用的网络接口:")
 		for i, device := range devices {
@@ -45,7 +42,7 @@ func main() {
 	wg.Add(1)
 	// 遍历所有接口并启动 Goroutine 监听
 	log.Println("stzbHelper开始运行!")
-	log.Println("version:", version)
+	log.Println("version:", global.Version)
 	//log.Println("提示：0.0.3版本开始启动软件后需要进入游戏点击自己的主公簿进行激活软件。此改动是为了之后实现多数据库与绑定游戏连接IP信息，避免出现连接到多个8001端口导致的数据错乱")
 	//log.Println("等待打开主公簿激活软件...")
 
@@ -81,7 +78,7 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
 	// 循环读取数据包
-	if isDebug == true {
+	if global.IsDebug == true {
 		fmt.Printf("开始在接口 %s 上捕获 TCP 数据包（端口 8001）...\n", deviceName)
 	}
 	for packet := range packetSource.Packets() {
@@ -92,8 +89,6 @@ func captureTCPPackets(deviceName string, wg *sync.WaitGroup) {
 var fullbuf = []byte{}
 var fullsize = 0
 var waitbuf = false
-var onlySrcIp = ""
-var onlyDstIp = ""
 
 func handlePacket(packet gopacket.Packet) {
 	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
@@ -122,9 +117,9 @@ func handlePacket(packet gopacket.Packet) {
 				}
 			}
 
-			if global.ExVar.BindIpInfo == true && onlySrcIp != "" && onlyDstIp != "" {
-				if onlySrcIp != srcIP || onlyDstIp != dstIP {
-					if isDebug == true {
+			if global.ExVar.BindIpInfo == true && global.OnlySrcIp != "" && global.OnlyDstIp != "" {
+				if global.OnlySrcIp != srcIP || global.OnlyDstIp != dstIP {
+					if global.IsDebug == true {
 						fmt.Println("IP信息不符合跳过数据处理")
 					}
 					return
@@ -146,23 +141,23 @@ func handlePacket(packet gopacket.Packet) {
 				}
 			}
 
-			if isDebug == true {
+			if global.IsDebug == true {
 				fmt.Println("")
 				fmt.Println("====================================================")
 				fmt.Println("")
 			}
 			bufread := NewBufferFrom(buf)
 			bufsize := bufread.ReadInt()
-			if isDebug == true {
+			if global.IsDebug == true {
 				fmt.Println("包大小", bufsize)
 			}
 			cmdId := bufread.ReadInt()
-			if isDebug == true {
+			if global.IsDebug == true {
 				fmt.Println("协议号", cmdId)
 			}
 
 			if len(buf) > 14 {
-				if isDebug == true {
+				if global.IsDebug == true {
 					fmt.Println("数据类型", buf[12])
 				}
 
@@ -190,14 +185,14 @@ func handlePacket(packet gopacket.Packet) {
 							log.Println("本地IP：" + dstIP)
 							log.Println("游戏服务器IP：" + srcIP)
 							//log.Println("软件将绑定以上IP进行数据过滤以避免数据错乱，如果当更换了账号或网络问题导致连接IP发送变化需要在软件网页上点击刷新IP信息然后重新打开主公簿进行绑定")
-							onlySrcIp = srcIP
-							onlyDstIp = dstIP
+							global.OnlySrcIp = srcIP
+							global.OnlyDstIp = dstIP
 						}
 					}
 				}
 			}
 
-			if isDebug == true {
+			if global.IsDebug == true {
 				fmt.Println("")
 				fmt.Println("====================================================")
 				fmt.Println("")

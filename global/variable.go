@@ -10,3 +10,8 @@ type WebExVar struct {
 var ExVar = WebExVar{
 	0, false, false, false,
 }
+
+var IsDebug bool = false
+var Version string = "0.0.3"
+var OnlySrcIp = ""
+var OnlyDstIp = ""
