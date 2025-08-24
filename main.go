@@ -37,7 +37,7 @@ func main() {
 	// 使用 WaitGroup 等待所有 Goroutine 完成
 	var wg sync.WaitGroup
 
-	model.InitDB("database")
+	//model.InitDB("database")
 	go StartHttpService(&wg)
 	wg.Add(1)
 	// 遍历所有接口并启动 Goroutine 监听
@@ -172,21 +172,24 @@ func handlePacket(packet gopacket.Packet) {
 							log.Fatal(err)
 						} else {
 							dataMap := raw[1].(map[string]interface{})
-
-							if server, ok := dataMap["server"].([]interface{}); ok {
+							server, ok := dataMap["server"].([]interface{})
+							if ok {
 								log.Printf("服务器信息: %v\n", server)
 							}
 
+							var roleName string
 							if logData, ok := dataMap["log"].(map[string]interface{}); ok {
-								roleName := logData["role_name"].(string)
+								roleName = logData["role_name"].(string)
 								log.Printf("角色名: %s\n", roleName)
 							}
 
 							log.Println("本地IP：" + dstIP)
 							log.Println("游戏服务器IP：" + srcIP)
-							//log.Println("软件将绑定以上IP进行数据过滤以避免数据错乱，如果当更换了账号或网络问题导致连接IP发送变化需要在软件网页上点击刷新IP信息然后重新打开主公簿进行绑定")
 							global.OnlySrcIp = srcIP
 							global.OnlyDstIp = dstIP
+							dabesename := roleName + "_" + server[0].(string)
+							log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
+							model.InitDB(dabesename)
 						}
 					}
 				}
