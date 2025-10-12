@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"stzbHelper/global"
@@ -320,6 +321,291 @@ func DelTaskReport(c *gin.Context) {
 		common.Response{Message: "清理任务战报失败"}.Error(c)
 		return
 	}
+}
+
+func ReportList(c *gin.Context) {
+	var reportList []model.BattleReport
+	nextid := c.Query("nextid")
+	atkname := c.Query("atkname")
+	atkunionname := c.Query("atkunionname")
+	atkhp := c.Query("atkhp")
+	atklevel := c.Query("atklevel")
+	atkstar := c.Query("atkstar")
+	stype := c.Query("type")
+	nonpc := c.Query("nonpc")
+	//no0army := c.Query("no0army")
+	query := model.Conn.Limit(30).Order("time DESC")
+	if nextid != "" {
+		nexidInt, err := strconv.Atoi(nextid)
+		if err != nil {
+			return
+		}
+		if nexidInt > 0 {
+			query.Where("id < ?", nexidInt)
+		}
+	} else {
+		common.Response{Message: "参数错误"}.Error(c)
+	}
+
+	if stype == "1" || stype == "" {
+		if atkname != "" {
+			query.Where("attack_name LIKE ? OR defend_name LIKE ?", "%"+atkname+"%", "%"+atkname+"%")
+		}
+
+		if atkunionname != "" {
+			query.Where("attack_union_name LIKE ? OR defend_union_name LIKE ?", "%"+atkunionname+"%", "%"+atkunionname+"%")
+		}
+
+		if atkhp != "" {
+			query.Where("attack_hp >= ? OR defend_hp >= ?", atkhp, atkhp)
+		}
+
+		if atklevel != "" {
+			query.Where("(attack_hero1_level >= ? AND attack_hero2_level >= ? AND attack_hero3_level >= ?) OR (defend_hero1_level >= ? AND defend_hero2_level >= ? AND defend_hero3_level >= ?)", atklevel, atklevel, atklevel, atklevel, atklevel, atklevel)
+		}
+
+		if atkstar != "" {
+			query.Where("attack_total_star >= ? OR defend_total_star >= ?", atkstar, atkstar)
+		}
+	} else if stype == "2" {
+		if atkname != "" {
+			query.Where("attack_name LIKE ?", "%"+atkname+"%")
+		}
+
+		if atkunionname != "" {
+			query.Where("attack_union_name LIKE", "%"+atkunionname+"%")
+		}
+
+		if atkhp != "" {
+			query.Where("attack_hp >= ?", atkhp)
+		}
+
+		if atklevel != "" {
+			query.Where("(attack_hero1_level >= ? AND attack_hero2_level >= ? AND attack_hero3_level >= ?)", atklevel, atklevel, atklevel)
+		}
+
+		if atkstar != "" {
+			query.Where("attack_total_star >= ?", atkstar)
+		}
+	} else if stype == "3" {
+		if atkname != "" {
+			query.Where("defend_name LIKE ?", "%"+atkname+"%")
+		}
+
+		if atkunionname != "" {
+			query.Where("defend_union_name LIKE", "%"+atkunionname+"%")
+		}
+
+		if atkhp != "" {
+			query.Where("defend_hp >= ?", atkhp)
+		}
+
+		if atklevel != "" {
+			query.Where("(defend_hero1_level >= ? AND defend_hero2_level >= ? AND defend_hero3_level >= ?)", atklevel, atklevel, atklevel)
+		}
+
+		if atkstar != "" {
+			query.Where("defend_total_star >= ?", atkstar)
+		}
+	} else if stype == "4" {
+		if atkname != "" {
+			query.Where("attack_name LIKE ? OR defend_name LIKE ?", "%"+atkname+"%", "%"+atkname+"%")
+		}
+
+		if atkunionname != "" {
+			query.Where("attack_union_name LIKE ? OR defend_union_name LIKE ?", "%"+atkunionname+"%", "%"+atkunionname+"%")
+		}
+
+		if atkhp != "" {
+			query.Where("attack_hp >= ? AND defend_hp >= ?", atkhp, atkhp)
+		}
+
+		if atklevel != "" {
+			query.Where("(attack_hero1_level >= ? AND attack_hero2_level >= ? AND attack_hero3_level >= ?) AND (defend_hero1_level >= ? AND defend_hero2_level >= ? AND defend_hero3_level >= ?)", atklevel, atklevel, atklevel, atklevel, atklevel, atklevel)
+		}
+
+		if atkstar != "" {
+			query.Where("attack_total_star >= ? AND defend_total_star >= ?", atkstar, atkstar)
+		}
+	}
+
+	if nonpc == "1" {
+		query.Where("npc = 0")
+	}
+
+	//query.Where("npc = 0")
+
+	query.Find(&reportList)
+
+	var count int64
+
+	model.Conn.Model(&model.BattleReport{}).Count(&count)
+
+	common.Response{Data: gin.H{
+		"report": reportList,
+		"total":  count,
+	}}.Success(c)
+	//fmt.Println(reportList)
+	//c.JSON(200, reportList)
+
+}
+
+func GetPlayerTeam(c *gin.Context) {
+	name := c.Query("atkname")
+	uname := c.Query("atkunionname")
+	if name == "" && uname == "" {
+		name = ""
+	}
+	var results []struct {
+		PlayerName   string `json:"player_name" gorm:"player_name"`
+		BattleID     int    `json:"battle_id" gorm:"battle_id"`
+		Hero1ID      int    `json:"hero1_id" gorm:"hero1_id"`
+		Hero2ID      int    `json:"hero2_id" gorm:"hero2_id"`
+		Hero3ID      int    `json:"hero3_id" gorm:"hero3_id"`
+		Hero1Level   int    `json:"hero1_level" gorm:"hero1_level"`
+		Hero2Level   int    `json:"hero2_level" gorm:"hero2_level"`
+		Hero3Level   int    `json:"hero3_level" gorm:"hero3_level"`
+		Hero1Star    int    `json:"hero1_star" gorm:"hero1_star"`
+		Hero2Star    int    `json:"hero2_star" gorm:"hero2_star"`
+		Hero3Star    int    `json:"hero3_star" gorm:"hero3_star"`
+		TotalStar    int    `json:"total_star" gorm:"total_star"`
+		Hp           int    `json:"hp" gorm:"hp"`
+		AllSkillInfo string `json:"all_skill_info" gorm:"all_skill_info"`
+		Role         string `json:"role" gorm:"role"`
+		Time         int    `json:"time" gorm:"time"`
+	}
+
+	query := `WITH ranked_data AS (
+		SELECT 
+			attack_name AS player_name,
+			attack_hero1_id AS hero1_id,
+			attack_hero2_id AS hero2_id,
+			attack_hero3_id AS hero3_id,
+			attack_hero1_level AS hero1_level,
+			attack_hero2_level AS hero2_level,
+			attack_hero3_level AS hero3_level,
+			attack_hero1_star AS hero1_star,
+			attack_hero2_star AS hero2_star,
+			attack_hero3_star AS hero3_star,
+			attack_total_star AS total_star,
+			attack_hp AS hp,
+			time,
+			all_skill_info,
+			battle_id,
+			'attack' AS role,
+			ROW_NUMBER() OVER (
+				PARTITION BY attack_name, attack_hero1_id
+				ORDER BY attack_hero1_level DESC, time DESC
+			) AS rn
+		FROM 
+			battle_report
+		WHERE 
+			attack_hero1_id != 0
+			AND attack_hero2_id != 0
+			AND attack_hero3_id != 0
+			AND attack_hero1_level >= 15
+			AND attack_hero2_level >= 15
+			AND attack_hero3_level >= 15
+			AND attack_hp >= 10000
+			AND attack_name LIKE '%` + name + `%'
+			AND attack_union_name LIKE '%` + uname + `%'
+			AND npc = 0
+			AND all_skill_info != "" AND all_skill_info IS NOT NULL 
+	
+		UNION ALL
+	
+		SELECT 
+			defend_name AS player_name,
+			defend_hero1_id AS hero1_id,
+			defend_hero2_id AS hero2_id,
+			defend_hero3_id AS hero3_id,
+			defend_hero1_level AS hero1_level,
+			defend_hero2_level AS hero2_level,
+			defend_hero3_level AS hero3_level,
+			defend_hero1_star AS hero1_star,
+			defend_hero2_star AS hero2_star,
+			defend_hero3_star AS hero3_star,
+			defend_total_star AS total_star,
+			defend_hp AS hp,
+			time,
+			all_skill_info,
+			battle_id,
+			'defend' AS role,
+			ROW_NUMBER() OVER (
+				PARTITION BY defend_name, defend_hero1_id
+				ORDER BY defend_hero1_level DESC, time DESC
+			) AS rn
+		FROM 
+			battle_report
+		WHERE 
+			defend_hero1_id != 0
+			AND defend_hero2_id != 0
+			AND defend_hero3_id != 0
+			AND defend_hero1_level >= 15
+			AND defend_hero2_level >= 15
+			AND defend_hero3_level >= 15
+			AND defend_hp >= 10000
+			AND defend_name LIKE '%` + name + `%'
+			AND defend_union_name LIKE '%` + uname + `%'
+			AND npc = 0
+			AND all_skill_info != "" AND all_skill_info IS NOT NULL 
+	),
+	deduplicated_data AS (
+    SELECT 
+        player_name,
+        hero1_id,
+        hero2_id,
+        hero3_id,
+        hero1_level,
+        hero2_level,
+        hero3_level,
+        hero1_star,
+        hero2_star,
+        hero3_star,
+        total_star,
+        hp,
+        time,
+        all_skill_info,
+        battle_id,
+        role,
+        ROW_NUMBER() OVER (
+            PARTITION BY player_name, hero1_id, hero2_id, hero3_id
+            ORDER BY time DESC
+        ) AS dedup_rn
+    FROM 
+        ranked_data
+    WHERE 
+        rn = 1
+)
+SELECT 
+    player_name,
+    hero1_id,
+    hero2_id,
+    hero3_id,
+    hero1_level,
+    hero2_level,
+    hero3_level,
+    hero1_star,
+    hero2_star,
+    hero3_star,
+    total_star,
+    hp,
+    time,
+    all_skill_info,
+    battle_id,
+    role
+FROM 
+    deduplicated_data
+WHERE 
+    dedup_rn = 1
+ORDER BY 
+    player_name, time DESC;`
+	fmt.Println(model.Conn.Raw(query).Scan(&results).Error) // 自动映射到结构体
+
+	// 使用结果
+	fmt.Println("找到记录:", len(results))
+
+	common.Response{Data: results}.Success(c)
 }
 
 func Example(c *gin.Context) {

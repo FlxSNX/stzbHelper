@@ -29,4 +29,6 @@ func Register(r *gin.RouterGroup) {
 	r.Any("getGroupWu", api.GetGroupWu)
 	// 删除任务战报
 	r.Any("deleteTaskReport/:tid", api.DelTaskReport)
+	r.GET("stzb/report/list", api.ReportList)
+	r.GET("stzb/player/team/get", api.GetPlayerTeam)
 }

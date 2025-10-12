@@ -164,38 +164,55 @@ func handlePacket(packet gopacket.Packet) {
 				if buf[12] == 3 {
 					go ParseData(cmdId, buf[17:])
 				} else if buf[12] == 5 {
-					if cmdId == 3686 {
-						data := DecodeType5(buf[12:])
-						var raw []interface{}
-						err := json.Unmarshal([]byte(data), &raw)
-						if err != nil {
-							log.Fatal(err)
-						} else {
-							dataMap := raw[1].(map[string]interface{})
-							server, ok := dataMap["server"].([]interface{})
-							if ok {
-								log.Printf("服务器信息: %v\n", server)
-							}
+					//println(buf)
+					data := DecodeType5(buf[12:])
+					fmt.Println(data)
+				}
 
-							var roleName string
-							if logData, ok := dataMap["log"].(map[string]interface{}); ok {
-								roleName = logData["role_name"].(string)
-								log.Printf("角色名: %s\n", roleName)
-							}
-
-							log.Println("本地IP：" + dstIP)
-							log.Println("游戏服务器IP：" + srcIP)
-							global.OnlySrcIp = srcIP
-							global.OnlyDstIp = dstIP
-							dabesename := roleName + "_" + server[0].(string)
-							log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
-							model.InitDB(dabesename)
+				if cmdId == 3686 {
+					var data []byte
+					if buf[12] == 5 {
+						data = []byte(DecodeType5(buf[12:]))
+					} else if buf[12] == 3 {
+						data = parseZlibData(buf[17:])
+					}
+					var raw []interface{}
+					err := json.Unmarshal([]byte(data), &raw)
+					if err != nil {
+						log.Fatal(err)
+					} else {
+						dataMap := raw[1].(map[string]interface{})
+						server, ok := dataMap["server"].([]interface{})
+						if ok {
+							log.Printf("服务器信息: %v\n", server)
 						}
+
+						var roleName string
+						if logData, ok := dataMap["log"].(map[string]interface{}); ok {
+							roleName = logData["role_name"].(string)
+							log.Printf("角色名: %s\n", roleName)
+						}
+
+						log.Println("本地IP：" + dstIP)
+						log.Println("游戏服务器IP：" + srcIP)
+						global.OnlySrcIp = srcIP
+						global.OnlyDstIp = dstIP
+						dabesename := roleName + "_" + server[0].(string)
+						log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
+						model.InitDB(dabesename)
 					}
 				}
 			}
 
 			if global.IsDebug == true {
+				fmt.Print("[]byte{")
+				for i, b := range buf {
+					if i > 0 {
+						fmt.Print(", ")
+					}
+					fmt.Print(b)
+				}
+				fmt.Println("}")
 				fmt.Println("")
 				fmt.Println("====================================================")
 				fmt.Println("")

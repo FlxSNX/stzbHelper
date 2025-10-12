@@ -19,6 +19,7 @@ func StartHttpService(wait *sync.WaitGroup) {
 	http.RegisterRoute(r)
 
 	log.Println("http://127.0.0.1:9527 浏览器打开此地址控制软件")
+	log.Println("http://127.0.0.1:9527/data.html#/team 此地址查询队伍")
 
 	err := r.Run(":9527")
 

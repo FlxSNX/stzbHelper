@@ -31,6 +31,7 @@ func staticRoute(r *gin.Engine) {
 		// 处理根路径默认指向index.html
 		if reqpath == "/" {
 			reqpath = "/index.html"
+
 		} else if reqpath[len(reqpath)-1:] == "/" { // 最后一位字符是斜杠时去除 否则会触发下面的打不开静态资源 然后500状态码
 			reqpath = reqpath[:len(reqpath)-1]
 		}
