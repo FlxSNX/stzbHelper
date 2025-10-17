@@ -12,7 +12,10 @@ import (
 	"stzbHelper/global"
 	"stzbHelper/model"
 	"sync"
+	"time"
 )
+
+var databaseSelected bool = false
 
 func main() {
 	// 获取所有网络接口
@@ -44,7 +47,9 @@ func main() {
 	log.Println("stzbHelper开始运行!")
 	log.Println("version:", global.Version)
 	//log.Println("提示：0.0.3版本开始启动软件后需要进入游戏点击自己的主公簿进行激活软件。此改动是为了之后实现多数据库与绑定游戏连接IP信息，避免出现连接到多个8001端口导致的数据错乱")
-	//log.Println("等待打开主公簿激活软件...")
+	time.Sleep(100 * time.Millisecond)
+	log.Println("等待打开主公簿激活软件...")
+	log.Println("未打开主公簿激活软件前软件可能会出现报错！")
 
 	for _, device := range devices {
 		wg.Add(1)
@@ -165,11 +170,13 @@ func handlePacket(packet gopacket.Packet) {
 					go ParseData(cmdId, buf[17:])
 				} else if buf[12] == 5 {
 					//println(buf)
-					data := DecodeType5(buf[12:])
-					fmt.Println(data)
+					if global.IsDebug == true {
+						data := DecodeType5(buf[12:])
+						fmt.Println(data)
+					}
 				}
 
-				if cmdId == 3686 {
+				if cmdId == 3686 && databaseSelected == false {
 					var data []byte
 					if buf[12] == 5 {
 						data = []byte(DecodeType5(buf[12:]))
@@ -200,6 +207,7 @@ func handlePacket(packet gopacket.Packet) {
 						dabesename := roleName + "_" + server[0].(string)
 						log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
 						model.InitDB(dabesename)
+						databaseSelected = true
 					}
 				}
 			}

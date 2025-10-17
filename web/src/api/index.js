@@ -52,3 +52,11 @@ export function ApiGetTask(id){
 export function ApiDelTaskReport(id){
     return api.get(`deleteTaskReport/${id}`);
 }
+
+export function ApiEnableGetBattleReport(){
+    return api.get(`enable/getBattleReport`);
+}
+
+export function ApiDisableGetBattleReport(){
+    return api.get(`disable/getBattleReport`);
+}

@@ -126,6 +126,16 @@ func DisableGetReport(c *gin.Context) {
 	common.Response{}.Success(c)
 }
 
+func EnableGetBattleData(c *gin.Context) {
+	global.ExVar.NeedGetBattleData = true
+	common.Response{}.Success(c)
+}
+
+func DisableGetBattleData(c *gin.Context) {
+	global.ExVar.NeedGetBattleData = false
+	common.Response{}.Success(c)
+}
+
 func GetReportNumByTaskId(c *gin.Context) {
 	tid := c.Param("tid")
 

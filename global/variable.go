@@ -9,7 +9,7 @@ type WebExVar struct {
 }
 
 var ExVar = WebExVar{
-	0, false, false, false, true,
+	0, false, false, false, false,
 }
 
 var IsDebug bool = false
