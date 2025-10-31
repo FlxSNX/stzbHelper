@@ -434,7 +434,7 @@ onBeforeUnmount(() => {
 										</div>
 										<div class="stars">
 											<!-- <div class="star" :class="{'up': item.Up >= (i+1)}" v-for="(s,i) in HEROS[item.Id].star"></div> -->
-											<div class="star" :class="{'up': item[`hero${hero}_star`] >= (i+1)}" v-for="(s,i) in herocfg[item[`hero${hero}_id`]]?.quality ? herocfg[item[`hero${hero}_id`]]?.quality : 0"></div>
+											<div class="star" :class="{'up': item[`hero${hero}_star`] >= (i+1)}" v-for="(s,i) in herocfg[item[`hero${hero}_id`]]?.quality ? herocfg[item[`hero${hero}_id`]]?.quality : item[`hero${hero}_id`] > 13000 ? herocfg[item[`hero${hero}_id`]-30000]?.quality : 0"></div>
 										</div>
 									</div>
 									<!-- <div>{{ hero.attacker_gear_info[0] }} {{ hero.attacker_gear_info[1] }} {{ hero.attacker_gear_info[2] }}</div> -->
