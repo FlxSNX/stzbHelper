@@ -428,7 +428,7 @@ onBeforeUnmount(() => {
 											<div>LV.{{ item[`hero${hero}_level`] }}</div>
 											<!-- <div>{{ hero.army }}</div> -->
 											<div style="width: 48px;height: 48px;position: absolute; top: -6px; right: -6px;">
-												<img :src="`https://cbg-stzb.res.netease.com/mvvm/rc346663d4140700aaab6da137/images/bz/${item.role != 'attack' ? item['hero_type'].split(',')[`${hero-1}`] : item['hero_type'].split(',')[`${hero}`]}.png`" style="width: 70%;">
+												<img :src="`https://cbg-stzb.res.netease.com/mvvm/rc346663d4140700aaab6da137/images/bz/${item.role != 'attack' ? item['hero_type'].split(',')[`${3-hero}`] : item['hero_type'].split(',')[`${hero}`]}.png`" style="width: 70%;">
 												<!-- {{ item.role != 'attack' ? item["hero_type"].split(",")[`${hero-1}`] : item["hero_type"].split(",")[`${hero}`] }} -->
 											</div>
 										</div>
