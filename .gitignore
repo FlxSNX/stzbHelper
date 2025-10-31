@@ -3,3 +3,6 @@
 *.exe
 .vscode
 *.bak
+dist
+dist1
+*.zip
