@@ -422,10 +422,15 @@ onBeforeUnmount(() => {
 								<div class="report-hero" v-if="hero.id != 0">
 									
 									<div class="hero" style="height: 140px;">
-										<img :src="`https://g0.gph.netease.com/ngsocial/community/stzb/cn/cards/cut/card_medium_${herocfg[item[`hero${hero}_id`]]?.iconId ? herocfg[item[`hero${hero}_id`]]?.iconId : item[`hero${hero}_id`] }.jpg?gameid=g10`">
+										
+										<img :src="`https://g0.gph.netease.com/ngsocial/community/stzb/cn/cards/cut/card_medium_${herocfg[item[`hero${hero}_id`]]?.iconId ? herocfg[item[`hero${hero}_id`]]?.iconId : item[`hero${hero}_id`] > 130000 ? item[`hero${hero}_id`] - 30000 : item[`hero${hero}_id`] }.jpg?gameid=g10`">
 										<div class="bottom">
 											<div>LV.{{ item[`hero${hero}_level`] }}</div>
 											<!-- <div>{{ hero.army }}</div> -->
+											<div style="width: 48px;height: 48px;position: absolute; top: -6px; right: -6px;">
+												<img :src="`https://cbg-stzb.res.netease.com/mvvm/rc346663d4140700aaab6da137/images/bz/${item.role != 'attack' ? item['hero_type'].split(',')[`${hero-1}`] : item['hero_type'].split(',')[`${hero}`]}.png`" style="width: 70%;">
+												<!-- {{ item.role != 'attack' ? item["hero_type"].split(",")[`${hero-1}`] : item["hero_type"].split(",")[`${hero}`] }} -->
+											</div>
 										</div>
 										<div class="stars">
 											<!-- <div class="star" :class="{'up': item.Up >= (i+1)}" v-for="(s,i) in HEROS[item.Id].star"></div> -->
