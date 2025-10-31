@@ -223,11 +223,11 @@ func parseHeroInfo(report model.BattleReport) model.BattleReport {
 			if err == nil {
 				switch i {
 				case 0:
-					report.DefendHero1Star = star
+					report.DefendHero3Star = star
 				case 1:
 					report.DefendHero2Star = star
 				case 2:
-					report.DefendHero3Star = star
+					report.DefendHero1Star = star
 				}
 				defendTotal += star
 			}
