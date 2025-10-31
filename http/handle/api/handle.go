@@ -483,6 +483,8 @@ func GetPlayerTeam(c *gin.Context) {
 		AllSkillInfo string `json:"all_skill_info" gorm:"all_skill_info"`
 		Role         string `json:"role" gorm:"role"`
 		Time         int    `json:"time" gorm:"time"`
+		Gear         string `json:"gear" gorm:"gear"`
+		HeroType     string `json:"hero_type" gorm:"hero_type"`
 	}
 
 	query := `WITH ranked_data AS (
@@ -499,6 +501,8 @@ func GetPlayerTeam(c *gin.Context) {
 			attack_hero3_star AS hero3_star,
 			attack_total_star AS total_star,
 			attack_hp AS hp,
+			attacker_gear_info AS gear,
+			attack_hero_type AS hero_type,
 			time,
 			all_skill_info,
 			battle_id,
@@ -537,6 +541,8 @@ func GetPlayerTeam(c *gin.Context) {
 			defend_hero3_star AS hero3_star,
 			defend_total_star AS total_star,
 			defend_hp AS hp,
+			defender_gear_info AS gear,
+			defend_hero_type AS hero_type,
 			time,
 			all_skill_info,
 			battle_id,
@@ -574,6 +580,8 @@ func GetPlayerTeam(c *gin.Context) {
         hero3_star,
         total_star,
         hp,
+		gear,
+		hero_type,
         time,
         all_skill_info,
         battle_id,
@@ -600,6 +608,8 @@ SELECT
     hero3_star,
     total_star,
     hp,
+	gear,
+	hero_type,
     time,
     all_skill_info,
     battle_id,
