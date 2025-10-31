@@ -418,7 +418,7 @@ onBeforeUnmount(() => {
 							<div v-for="(hero,heroindex) in 3">
                                 <!-- {{item.player_name}} -->
 								<!-- <div v-if="hero.id != 0">{{ herocfg[hero.id]?.name ? herocfg[hero.id]?.name : hero.id }}</div> -->
-                                <div>{{ herocfg[item[`hero${hero}_id`]]?.name ? herocfg[item[`hero${hero}_id`]]?.name : item[`hero${hero}_id`] }}</div>
+                                <div>{{ herocfg[item[`hero${hero}_id`]]?.name ? herocfg[item[`hero${hero}_id`]]?.name : item[`hero${hero}_id`] > 130000 ? herocfg[item[`hero${hero}_id`]-30000]?.name : item[`hero${hero}_id`] }}</div>
 								<div class="report-hero" v-if="hero.id != 0">
 									
 									<div class="hero" style="height: 140px;">
