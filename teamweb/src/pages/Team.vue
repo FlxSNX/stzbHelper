@@ -17,6 +17,7 @@ const report = ref([]);
 const nextid = ref(0);
 const atkname = ref('');
 const atkunionname = ref('');
+const idu = ref('');
 const atkhp = ref('');
 const atkstar = ref('');
 const atklevel = ref('');
@@ -171,6 +172,7 @@ const resetReport = () => {
 	serachType.value = null;
 	noviewnpc.value = false;
 	atkunionname.value = '';
+	idu.value = '';
 	atkhp.value = '';
 	getReportListData(1);
 }
@@ -231,6 +233,7 @@ const getReportListData = (clear=false) => {
 		nextid:nextid.value,
 		atkname:atkname.value,
 		atkunionname:atkunionname.value,
+		idu:idu.value,
 		atkhp:atkhp.value,
 		atkstar:atkstar.value,
 		atklevel:atklevel.value,
@@ -340,6 +343,9 @@ onBeforeUnmount(() => {
 				<n-form-item label="同盟名字">
 						<n-input placeholder="" v-model:value="atkunionname" />
 				</n-form-item>
+				<n-form-item label="队伍标识">
+						<n-input placeholder="" v-model:value="idu" />
+				</n-form-item>
 				<!-- <n-form-item label="红度">
 						<n-input placeholder="" v-model:value="atkstar" />
 				</n-form-item> -->
@@ -388,6 +394,7 @@ onBeforeUnmount(() => {
 								<!-- <div>{{item.attack_union_name  ? "【盟】"+item.attack_union_name : ""}}</div>
 								<div>{{ item.attack_name == "" && item.npc ? "守军" : item.attack_name }}</div> -->
 							</div>
+							<div>队伍ID标识：	{{ item.idu ? item.idu : "缺失队伍标识 需要使用最新版查询拉起战报" }}</div>
 							<!-- <div class="report-bar" style="justify-content: flex-end;">
 								<div style="margin-right: 8px;">{{item.attack_curhp}}/<span style="color:#8d8d8d">{{ item.attack_hp }}</span></div>
 								<div class="bar-box">
