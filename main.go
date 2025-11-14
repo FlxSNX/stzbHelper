@@ -167,13 +167,42 @@ func handlePacket(packet gopacket.Packet) {
 				}
 
 				if buf[12] == 3 {
-					go ParseData(cmdId, buf[17:])
+					//fmt.Println(len(buf), bufsize, cmdId, "-----------")
+					if len(buf)-bufsize != 4 && (cmdId == 103 || cmdId == 92) {
+						global.LossCmdId = cmdId
+						global.LossBytes = buf
+						global.PacketLoss = true
+						global.NeedBufSize = bufsize
+					} else {
+						go ParseData(cmdId, buf[17:])
+					}
+
 				} else if buf[12] == 5 {
 					//println(buf)
 					if global.IsDebug == true {
 						data := DecodeType5(buf[12:])
 						fmt.Println(data)
 					}
+				} else if buf[12] == 2 {
+
+					//if cmdId == 5028 || cmdId == 5026 {
+					//	fmt.Println(string(buf[12:]))
+					//}
+					//
+					//if cmdId == 5028 {
+					//	Parse5028(buf[13:])
+					//}
+				} else if cmdId > 99999 && global.PacketLoss == true && (global.LossCmdId == 103 || global.LossCmdId == 92) {
+					result := make([]byte, len(buf)+len(global.LossBytes))
+					copy(result, global.LossBytes)
+					copy(result[len(global.LossBytes):], buf)
+					if len(buf)+len(global.LossBytes)-global.NeedBufSize != 4 {
+						global.LossBytes = result
+					} else {
+						global.PacketLoss = false
+						go ParseData(global.LossCmdId, result[17:])
+					}
+
 				}
 
 				if cmdId == 3686 && databaseSelected == false {

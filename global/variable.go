@@ -13,6 +13,10 @@ var ExVar = WebExVar{
 }
 
 var IsDebug bool = false
-var Version string = "0.0.3"
+var Version string = "0.0.3-rc2-fix2"
 var OnlySrcIp = ""
 var OnlyDstIp = ""
+var PacketLoss = false
+var LossBytes []byte
+var LossCmdId = 0
+var NeedBufSize = 0
