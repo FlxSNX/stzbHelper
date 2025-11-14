@@ -71,6 +71,8 @@ type BattleData struct {
 	Npc                   int64       `json:"npc"`
 	AllSkillInfo          string      `json:"all_skill_info"`
 	Result                int64       `json:"result"`
+	AttackIdu             string      `json:"attack_idu"` //进攻方队伍ID
+	DefendIdu             string      `json:"defend_idu"` //防守方队伍ID
 }
 
 func parseBattleData(data []byte) {
@@ -160,6 +162,8 @@ func parseBattleData(data []byte) {
 				Npc:                   battleData.Npc,
 				AllSkillInfo:          battleData.AllSkillInfo,
 				Result:                battleData.Result,
+				AttackIdu:             battleData.AttackIdu,
+				DefendIdu:             battleData.DefendIdu,
 			}
 
 			// 解析进阶信息和武将信息

@@ -11,6 +11,8 @@ type BattleReport struct {
 	AttackUnionName       string `json:"attack_union_name" gorm:"attack_union_name"`               // 进攻方同盟名字
 	AttackClanName        string `json:"attack_clan_name" gorm:"attack_clan_name"`                 // 未知
 	DefendClanName        string `json:"defend_clan_name" gorm:"defend_clan_name"`                 // 未知
+	AttackIdu             string `json:"attack_idu" gorm:"attack_idu;default:无"`                  //进攻方队伍ID
+	DefendIdu             string `json:"defend_idu" gorm:"defend_idu;default:无"`                  //防守方队伍ID
 	DefendName            string `json:"defend_name" gorm:"defend_name"`                           // 防守方名字
 	DefendUnionName       string `json:"defend_union_name" gorm:"defend_union_name"`               // 防守方同盟名字
 	AttackAdvance         string `json:"attack_advance" gorm:"attack_advance"`                     // 进攻方武将进阶信息

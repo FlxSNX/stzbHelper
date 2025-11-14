@@ -463,6 +463,7 @@ func ReportList(c *gin.Context) {
 func GetPlayerTeam(c *gin.Context) {
 	name := c.Query("atkname")
 	uname := c.Query("atkunionname")
+	idu := c.Query("idu")
 	if name == "" && uname == "" {
 		name = ""
 	}
@@ -485,6 +486,8 @@ func GetPlayerTeam(c *gin.Context) {
 		Time         int    `json:"time" gorm:"time"`
 		Gear         string `json:"gear" gorm:"gear"`
 		HeroType     string `json:"hero_type" gorm:"hero_type"`
+		Idu          string `json:"idu" gorm:"idu"`
+		TeamId       string `json:"team-id" gorm:"tema_id"`
 	}
 
 	query := `WITH ranked_data AS (
@@ -503,6 +506,7 @@ func GetPlayerTeam(c *gin.Context) {
 			attack_hp AS hp,
 			attacker_gear_info AS gear,
 			attack_hero_type AS hero_type,
+			attack_idu AS idu,
 			time,
 			all_skill_info,
 			battle_id,
@@ -523,6 +527,7 @@ func GetPlayerTeam(c *gin.Context) {
 			AND attack_hp >= 10000
 			AND attack_name LIKE '%` + name + `%'
 			AND attack_union_name LIKE '%` + uname + `%'
+			AND attack_idu LIKE '%` + idu + `%'
 			AND npc = 0
 			AND all_skill_info != "" AND all_skill_info IS NOT NULL 
 	
@@ -543,6 +548,7 @@ func GetPlayerTeam(c *gin.Context) {
 			defend_hp AS hp,
 			defender_gear_info AS gear,
 			defend_hero_type AS hero_type,
+			defend_idu AS idu,
 			time,
 			all_skill_info,
 			battle_id,
@@ -563,6 +569,7 @@ func GetPlayerTeam(c *gin.Context) {
 			AND defend_hp >= 10000
 			AND defend_name LIKE '%` + name + `%'
 			AND defend_union_name LIKE '%` + uname + `%'
+			AND defend_idu LIKE '%` + idu + `%'
 			AND npc = 0
 			AND all_skill_info != "" AND all_skill_info IS NOT NULL 
 	),
@@ -582,6 +589,7 @@ func GetPlayerTeam(c *gin.Context) {
         hp,
 		gear,
 		hero_type,
+		idu,
         time,
         all_skill_info,
         battle_id,
@@ -610,6 +618,7 @@ SELECT
     hp,
 	gear,
 	hero_type,
+	idu,
     time,
     all_skill_info,
     battle_id,
