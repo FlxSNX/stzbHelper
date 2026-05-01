@@ -177,13 +177,13 @@ onMounted(() => {
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
 
 .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .search-input {
@@ -197,8 +197,8 @@ onMounted(() => {
 }
 
 .member-card {
-    background: #fff;
-    border: 1px solid rgba(228, 228, 231, 0.6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
     padding: 16px 20px;
     transition: box-shadow 0.2s, transform 0.2s;
@@ -219,7 +219,7 @@ onMounted(() => {
 .member-name {
     font-size: 16px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
 }
 
 .member-stats {
@@ -234,16 +234,16 @@ onMounted(() => {
 
 .stat-label {
     font-size: 12px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .stat-value {
     font-size: 14px;
-    color: #1e293b;
+    color: var(--color-text);
     font-weight: 500;
 
     &.highlight {
-        color: #3b82f6;
+        color: var(--color-accent);
     }
 }
 </style>

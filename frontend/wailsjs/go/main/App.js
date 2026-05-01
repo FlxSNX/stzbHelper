@@ -30,6 +30,10 @@ export function DisableGetBattleReport() {
   return window['go']['main']['App']['DisableGetBattleReport']();
 }
 
+export function DisableGetReport() {
+  return window['go']['main']['App']['DisableGetReport']();
+}
+
 export function EnableGetBattleReport() {
   return window['go']['main']['App']['EnableGetBattleReport']();
 }
@@ -50,8 +54,8 @@ export function GetLogs() {
   return window['go']['main']['App']['GetLogs']();
 }
 
-export function GetPlayerTeam(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetPlayerTeam'](arg1, arg2, arg3);
+export function GetPlayerTeam(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['GetPlayerTeam'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function GetReportNumByTaskId(arg1) {

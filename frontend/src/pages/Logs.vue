@@ -91,13 +91,13 @@ onUnmounted(() => {
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
 
 .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .log-container {
@@ -121,7 +121,7 @@ onUnmounted(() => {
 
 .log-icon {
     flex-shrink: 0;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin-top: 4px;
 }
 </style>

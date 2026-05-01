@@ -151,7 +151,7 @@ onMounted(() => {
     justify-content: center;
     min-height: 100%;
     padding-top: 80px;
-    background: #f8f9fb;
+    background: var(--color-bg);
 }
 
 .select-db-container {
@@ -171,7 +171,7 @@ onMounted(() => {
     width: 56px;
     height: 56px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    background: linear-gradient(135deg, #404040, #171717);
     color: #fff;
     margin-bottom: 16px;
 }
@@ -179,13 +179,13 @@ onMounted(() => {
 .select-db-title {
     font-size: 22px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--color-text);
     margin: 0 0 6px;
 }
 
 .select-db-desc {
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin: 0;
 }
 
@@ -199,7 +199,7 @@ onMounted(() => {
     justify-content: center;
     gap: 12px;
     padding: 40px 0;
-    color: #64748b;
+    color: var(--color-text-secondary);
     font-size: 14px;
 }
 
@@ -219,7 +219,7 @@ onMounted(() => {
     transition: background-color 0.15s, transform 0.15s;
 
     &:hover {
-        background: #eff6ff;
+        background: var(--color-primary-light);
     }
 
     &:active {
@@ -245,20 +245,20 @@ onMounted(() => {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: #eff6ff;
-    color: #3b82f6;
+    background: var(--color-primary-light);
+    color: var(--color-accent);
 }
 
 .db-item-name {
     font-size: 14px;
     font-weight: 500;
-    color: #1e293b;
+    color: var(--color-text);
 }
 
 .db-item-right {
     display: flex;
     align-items: center;
-    color: #94a3b8;
+    color: var(--color-text-secondary);
 }
 
 .select-db-actions {

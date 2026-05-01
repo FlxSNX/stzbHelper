@@ -1,14 +1,16 @@
 <script setup>
 import { h, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NMessageProvider, NDialogProvider, NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NMenu, NIcon } from 'naive-ui'
-import { zhCN, dateZhCN } from 'naive-ui'
-import { Home, Users, ClipboardList, Swords, UserRoundSearch, ScrollText, Bug } from 'lucide-vue-next'
+import { NMessageProvider, NDialogProvider, NConfigProvider, NLayout, NLayoutSider, NLayoutContent, NMenu, NIcon, NButton } from 'naive-ui'
+import { zhCN, dateZhCN, darkTheme } from 'naive-ui'
+import { Home, Users, ClipboardList, Swords, UserRoundSearch, ScrollText, Bug, Moon, Sun } from 'lucide-vue-next'
+import { useThemeStore } from './stores/theme'
 
 import TitleBar from './components/TitleBar.vue'
 
 const route = useRoute()
 const router = useRouter()
+const themeStore = useThemeStore()
 
 const activeKey = computed(() => {
     const path = route.path
@@ -64,11 +66,11 @@ const handleMenuUpdate = (key) => {
     router.push(key === 'index' ? '/' : `/${key}`)
 }
 
-const themeOverrides = {
+const themeOverrides = computed(() => ({
     common: {
-        primaryColor: '#3b82f6',
-        primaryColorHover: '#2563eb',
-        primaryColorPressed: '#1d4ed8',
+        primaryColor: themeStore.isDark ? '#e5e5e5' : '#3b82f6',
+        primaryColorHover: themeStore.isDark ? '#d4d4d4' : '#2563eb',
+        primaryColorPressed: themeStore.isDark ? '#a3a3a3' : '#1d4ed8',
         borderRadius: '8px',
         borderRadiusSmall: '6px',
         fontFamily: 'geist-sans, ui-sans-serif, system-ui, sans-serif',
@@ -79,8 +81,8 @@ const themeOverrides = {
     },
     Table: {
         borderRadius: '12px',
-        thColor: '#f8f9fb',
-        tdColorHover: '#f1f3f5',
+        thColor: themeStore.isDark ? '#262626' : '#f8f9fb',
+        tdColorHover: themeStore.isDark ? '#262626' : '#f1f3f5',
     },
     Button: {
         borderRadiusMedium: '8px',
@@ -88,18 +90,18 @@ const themeOverrides = {
     },
     Menu: {
         borderRadius: '8px',
-        itemColorActive: '#eff6ff',
-        itemColorActiveHover: '#eff6ff',
-        itemTextColorActive: '#3b82f6',
-        itemTextColorActiveHover: '#3b82f6',
-        itemIconColorActive: '#3b82f6',
-        itemIconColorActiveHover: '#3b82f6',
+        itemColorActive: themeStore.isDark ? 'rgba(255, 255, 255, 0.06)' : '#eff6ff',
+        itemColorActiveHover: themeStore.isDark ? 'rgba(255, 255, 255, 0.06)' : '#eff6ff',
+        itemTextColorActive: themeStore.isDark ? '#ffffff' : '#3b82f6',
+        itemTextColorActiveHover: themeStore.isDark ? '#ffffff' : '#3b82f6',
+        itemIconColorActive: themeStore.isDark ? '#ffffff' : '#3b82f6',
+        itemIconColorActiveHover: themeStore.isDark ? '#ffffff' : '#3b82f6',
     },
-}
+}))
 </script>
 
 <template>
-    <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme-overrides="themeOverrides">
+    <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme="themeStore.isDark ? darkTheme : undefined" :theme-overrides="themeOverrides">
         <n-dialog-provider>
             <n-message-provider>
                 <div class="app-shell">
@@ -116,11 +118,19 @@ const themeOverrides = {
                                 :options="menuOptions"
                                 @update:value="handleMenuUpdate"
                             />
+                            <div class="sidebar-bottom">
+                                <n-button quaternary circle size="small" @click="themeStore.toggle" :title="themeStore.isDark ? '切换浅色模式' : '切换深色模式'">
+                                    <template #icon>
+                                        <Sun v-if="themeStore.isDark" :size="16" />
+                                        <Moon v-else :size="16" />
+                                    </template>
+                                </n-button>
+                            </div>
                         </n-layout-sider>
                         <n-layout>
                             <n-layout-content
                                 :native-scrollbar="false"
-                                content-style="padding: 24px; background: #f8f9fb; min-height: 100%;"
+                                class="main-content"
                             >
                                 <router-view v-slot="{ Component, route: r }">
                                     <keep-alive include="Index">
@@ -133,7 +143,7 @@ const themeOverrides = {
                     <n-layout v-else class="app-layout">
                         <n-layout-content
                             :native-scrollbar="false"
-                            content-style="background: #f8f9fb; min-height: 100%;"
+                            class="main-content"
                         >
                             <router-view />
                         </n-layout-content>
@@ -158,7 +168,21 @@ const themeOverrides = {
     min-height: 0;
 }
 
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.main-content {
+    padding: 24px;
+    background: var(--color-bg);
+    min-height: 100%;
+}
+
 :deep(.n-layout-scroll-container) {
-    background: #f8f9fb;
+    background: var(--color-bg);
 }
 </style>

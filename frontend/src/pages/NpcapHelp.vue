@@ -72,7 +72,7 @@ const openNpcapGuide = () => {
     justify-content: center;
     min-height: 100%;
     padding-top: 80px;
-    background: #f8f9fb;
+    background: var(--color-bg);
 }
 
 .npcap-container {
@@ -100,13 +100,13 @@ const openNpcapGuide = () => {
 .npcap-title {
     font-size: 22px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--color-text);
     margin: 0 0 6px;
 }
 
 .npcap-desc {
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin: 0;
 }
 
@@ -123,7 +123,7 @@ const openNpcapGuide = () => {
 .steps-title {
     font-size: 15px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin: 0 0 4px;
 }
 
@@ -140,8 +140,8 @@ const openNpcapGuide = () => {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: #eff6ff;
-    color: #3b82f6;
+    background: var(--color-primary-light);
+    color: var(--color-accent);
     font-size: 13px;
     font-weight: 600;
     flex-shrink: 0;
@@ -149,7 +149,7 @@ const openNpcapGuide = () => {
 
 .step-text {
     font-size: 14px;
-    color: #334155;
+    color: var(--color-text);
 }
 
 .npcap-actions {

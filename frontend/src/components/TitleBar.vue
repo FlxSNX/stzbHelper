@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { WindowMinimise, WindowToggleMaximise, WindowIsMaximised, Quit } from '../../wailsjs/runtime/runtime'
 import { Swords, Minus, Square, X, Copy } from 'lucide-vue-next'
+import { useThemeStore } from '../stores/theme'
+
+const themeStore = useThemeStore()
 
 const isMaximised = ref(false)
 
@@ -43,7 +46,7 @@ onUnmounted(() => {
 <template>
     <div class="titlebar">
         <div class="titlebar-left" @dblclick="handleDblClick">
-            <div class="titlebar-icon">
+            <div class="titlebar-icon" :class="{ 'titlebar-icon--dark': themeStore.isDark }">
                 <Swords :size="16" />
             </div>
             <span class="titlebar-text">率土之滨助手</span>
@@ -69,8 +72,8 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     height: 36px;
-    background: #ffffff;
-    border-bottom: 1px solid rgba(228, 228, 231, 0.6);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
     user-select: none;
     flex-shrink: 0;
     --wails-draggable: drag;
@@ -91,15 +94,20 @@ onUnmounted(() => {
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    background: linear-gradient(135deg, #404040, #171717);
     color: #fff;
     flex-shrink: 0;
+
+    &--dark {
+        background: linear-gradient(135deg, #e5e5e5, #a3a3a3);
+        color: #0a0a0a;
+    }
 }
 
 .titlebar-text {
     font-size: 13px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     white-space: nowrap;
 }
 
@@ -118,15 +126,15 @@ onUnmounted(() => {
     height: 100%;
     border: none;
     background: transparent;
-    color: #64748b;
+    color: var(--color-text-secondary);
     cursor: pointer;
     transition: background-color 0.15s, color 0.15s;
     outline: none;
     --wails-draggable: no-drag;
 
     &:hover {
-        background-color: #f1f3f5;
-        color: #1e293b;
+        background-color: var(--color-surface-hover);
+        color: var(--color-text);
     }
 
     &--close:hover {

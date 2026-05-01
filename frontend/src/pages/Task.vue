@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import {
     NCard, NButton, NSpace, NTag, NEmpty,
     NInput, NFormItem, NSelect, NDatePicker, NPopconfirm, NModal,
@@ -8,7 +8,7 @@ import {
 } from 'naive-ui'
 import {
     GetTeamGroup, CreateTask, GetTaskList, DeleteTask,
-    EnableGetReport, GetReportNumByTaskId, StatisticsReport,
+    EnableGetReport, DisableGetReport, GetReportNumByTaskId, StatisticsReport,
     GetTask, DeleteTaskReport
 } from '../../wailsjs/go/main/App'
 import { formatTimestampMs, splitwid } from '@/utils/format'
@@ -125,21 +125,34 @@ const enableGetReport = (id, pos) => {
     }, 1000)
 }
 
+const stopReport = () => {
+    clearInterval(getReportNumTimer.value)
+    getReportNumTimer.value = null
+    getReporting.value = false
+    inStatistics.value = false
+    DisableGetReport()
+}
+
+watch(showModal, (val) => {
+    if (!val) stopReport()
+})
+
 const statistics = () => {
     clearInterval(getReportNumTimer.value)
+    getReportNumTimer.value = null
     getReporting.value = false
     inStatistics.value = true
     StatisticsReport(curtaskid.value).then(v => {
         let resp = JSON.parse(v)
         if (resp.code == 200) {
             nmessage.success(resp.msg)
-            showModal.value = false
             curtaskid.value = 0
             getTaskList()
         } else {
             nmessage.error(resp.msg)
         }
         inStatistics.value = false
+        showModal.value = false
     }).catch(e => {
         inStatistics.value = false
         nmessage.error('统计考勤数据失败:' + e)
@@ -176,12 +189,12 @@ const exportExcel = () => {
 }
 
 const detailColumns = [
-    { title: '名称', key: 'name', sorter: 'default' },
-    { title: '分组', key: 'group', sorter: 'default' },
-    { title: '主力', key: 'atk_team_num', sorter: (a, b) => a.atk_team_num - b.atk_team_num },
-    { title: '拆迁', key: 'dis_team_num', sorter: (a, b) => a.dis_team_num - b.dis_team_num },
+    { title: '名称', key: 'name', sorter: 'default', defaultSortOrder: false },
+    { title: '分组', key: 'group', sorter: 'default', defaultSortOrder: false },
+    { title: '主力', key: 'atk_team_num', sorter: (a, b) => a.atk_team_num - b.atk_team_num, defaultSortOrder: false },
+    { title: '拆迁', key: 'dis_team_num', sorter: (a, b) => a.dis_team_num - b.dis_team_num, defaultSortOrder: false },
     { title: '主力次数', key: 'atk_num', sorter: (a, b) => a.atk_num - b.atk_num, defaultSortOrder: 'descend' },
-    { title: '拆迁次数', key: 'dis_num', sorter: (a, b) => a.dis_num - b.dis_num },
+    { title: '拆迁次数', key: 'dis_num', sorter: (a, b) => a.dis_num - b.dis_num, defaultSortOrder: false },
 ]
 
 const detailData = computed(() => {
@@ -238,6 +251,9 @@ const detailData = computed(() => {
                 </n-button>
                 <n-button strong secondary type="success" @click="statistics" :loading="inStatistics">
                     {{ inStatistics ? '统计考勤数据中' : '已获取完战报，开始统计考勤数据' }}
+                </n-button>
+                <n-button strong secondary @click="showModal = false">
+                    取消
                 </n-button>
             </n-space>
         </template>
@@ -360,13 +376,13 @@ const detailData = computed(() => {
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
 
 .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .task-list {
@@ -376,8 +392,8 @@ const detailData = computed(() => {
 }
 
 .task-card {
-    background: #fff;
-    border: 1px solid rgba(228, 228, 231, 0.6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 10px;
     padding: 20px;
     transition: box-shadow 0.2s, transform 0.2s;
@@ -401,12 +417,12 @@ const detailData = computed(() => {
 .task-name {
     font-size: 16px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
 }
 
 .task-coords {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .task-stats {
@@ -415,7 +431,7 @@ const detailData = computed(() => {
     gap: 12px 24px;
     margin-bottom: 16px;
     padding: 16px;
-    background: #f8f9fb;
+    background: var(--color-bg);
     border-radius: 8px;
 }
 
@@ -427,16 +443,16 @@ const detailData = computed(() => {
 
 .task-stat-label {
     font-size: 12px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .task-stat-value {
     font-size: 14px;
-    color: #1e293b;
+    color: var(--color-text);
     font-weight: 500;
 
     &.highlight {
-        color: #3b82f6;
+        color: var(--color-accent);
     }
 }
 
@@ -464,7 +480,7 @@ const detailData = computed(() => {
 
 .report-tip {
     font-size: 14px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     margin-bottom: 24px;
     line-height: 1.6;
 }
@@ -477,5 +493,20 @@ const detailData = computed(() => {
 
 .detail-modal {
     overflow: auto;
+
+    :deep(.n-data-table-sorter) {
+        opacity: 0;
+        color: var(--color-primary);
+        transition: opacity 0.15s;
+    }
+
+    :deep(th:hover .n-data-table-sorter) {
+        opacity: 1;
+    }
+
+    :deep(.n-data-table-th--sorting .n-data-table-sorter) {
+        opacity: 1;
+        color: var(--color-primary);
+    }
 }
 </style>

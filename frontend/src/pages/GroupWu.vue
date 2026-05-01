@@ -7,6 +7,28 @@ import { RefreshCw } from 'lucide-vue-next'
 const nmessage = useMessage()
 const groupdata = ref([])
 const loading = ref(false)
+const sortKey = ref('total_wu')
+const sortOrder = ref('desc')
+
+const toggleSort = (key) => {
+    if (sortKey.value === key) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    } else {
+        sortKey.value = key
+        sortOrder.value = 'desc'
+    }
+}
+
+const sortedData = computed(() => {
+    if (!sortKey.value) return groupdata.value
+    return [...groupdata.value].sort((a, b) => {
+        let va = a[sortKey.value], vb = b[sortKey.value]
+        if (typeof va === 'string') {
+            return sortOrder.value === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+        }
+        return sortOrder.value === 'asc' ? va - vb : vb - va
+    })
+})
 
 const totalMembers = computed(() => groupdata.value.reduce((sum, g) => sum + g.member_count, 0))
 const totalWu = computed(() => groupdata.value.reduce((sum, g) => sum + g.total_wu, 0))
@@ -79,15 +101,15 @@ onMounted(() => {
             <n-table v-if="groupdata.length > 0" :bordered="true" :single-line="false" class="styled-table">
                 <thead>
                     <tr>
-                        <th>分组名称</th>
-                        <th>人数</th>
-                        <th>总武勋</th>
-                        <th>平均武勋</th>
-                        <th>0武勋人数</th>
+                        <th class="sortable-th" @click="toggleSort('group')">分组名称 <span class="sort-icon" v-if="sortKey==='group'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+                        <th class="sortable-th" @click="toggleSort('member_count')">人数 <span class="sort-icon" v-if="sortKey==='member_count'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+                        <th class="sortable-th" @click="toggleSort('total_wu')">总武勋 <span class="sort-icon" v-if="sortKey==='total_wu'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+                        <th class="sortable-th" @click="toggleSort('average_wu')">平均武勋 <span class="sort-icon" v-if="sortKey==='average_wu'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+                        <th class="sortable-th" @click="toggleSort('zero_wu_count')">0武勋人数 <span class="sort-icon" v-if="sortKey==='zero_wu_count'">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="u in groupdata" :key="u.group">
+                    <tr v-for="u in sortedData" :key="u.group">
                         <td>
                             <span class="group-name">{{ u.group }}</span>
                         </td>
@@ -126,13 +148,13 @@ onMounted(() => {
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
 
 .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .styled-table {
@@ -141,11 +163,26 @@ onMounted(() => {
 
     thead {
         th {
-            background: #f8f9fb;
+            background: var(--color-bg);
             font-weight: 600;
-            color: #64748b;
+            color: var(--color-text-secondary);
             font-size: 13px;
             padding: 12px 16px;
+        }
+
+        .sortable-th {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s;
+
+            &:hover {
+                color: var(--color-text);
+            }
+        }
+
+        .sort-icon {
+            color: var(--color-primary);
+            font-size: 12px;
         }
     }
 
@@ -156,18 +193,18 @@ onMounted(() => {
         }
 
         tr:nth-child(even) {
-            background: #fafbfc;
+            background: var(--color-bg);
         }
 
         tr:hover td {
-            background: #f1f3f5;
+            background: var(--color-surface-hover);
         }
     }
 }
 
 .group-name {
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
 }
 
 .zero-warn {

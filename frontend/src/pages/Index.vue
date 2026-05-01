@@ -162,10 +162,10 @@ onMounted(() => {
 }
 
 .page-hero {
-    background: #3b82f6;
+    background: var(--color-hero-bg);
     border-radius: 12px;
     padding: 32px;
-    color: #fff;
+    color: var(--color-hero-text);
 
     &-title {
         font-size: 24px;
@@ -198,7 +198,7 @@ onMounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 16px;
-    background: #f8f9fb;
+    background: var(--color-surface-hover);
     border-radius: 8px;
 
     &-info {
@@ -208,13 +208,13 @@ onMounted(() => {
     &-title {
         font-size: 15px;
         font-weight: 600;
-        color: #1e293b;
+        color: var(--color-text);
         margin-bottom: 4px;
     }
 
     &-desc {
         font-size: 13px;
-        color: #64748b;
+        color: var(--color-text-secondary);
     }
 }
 </style>

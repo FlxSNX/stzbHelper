@@ -119,6 +119,11 @@ func (a *App) EnableGetReport(pos int) string {
 	return global.Response{Message: "开启获取战报成功"}.Success()
 }
 
+func (a *App) DisableGetReport() string {
+	global.ExVar.NeedGetReport = false
+	return global.Response{Message: "停止获取战报"}.Success()
+}
+
 // GetReportNumByTaskId 获取某任务的战报数量
 func (a *App) GetReportNumByTaskId(id int) string {
 	var task model.Task
@@ -347,7 +352,7 @@ func (a *App) CheckUpdate() string {
 }
 
 // GetPlayerTeam 查询玩家队伍
-func (a *App) GetPlayerTeam(name string, uname string, idu string) string {
+func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pageSize int) string {
 	type PlayerTeam struct {
 		PlayerName   string `json:"player_name"`
 		BattleID     int    `json:"battle_id"`
@@ -370,11 +375,18 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string) string {
 		Idu          string `json:"idu"`
 	}
 
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 200 {
+		pageSize = 50
+	}
+
 	namePattern := "%" + name + "%"
 	unamePattern := "%" + uname + "%"
 	iduPattern := "%" + idu + "%"
 
-	query := `WITH ranked_data AS (
+	baseQuery := `WITH ranked_data AS (
 		SELECT
 			attack_name AS player_name,
 			attack_hero1_id AS hero1_id,
@@ -443,22 +455,39 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string) string {
 			ORDER BY time DESC
 		) AS dedup_rn
 		FROM ranked_data WHERE rn = 1
-	)
-	SELECT player_name, hero1_id, hero2_id, hero3_id, hero1_level, hero2_level, hero3_level,
-		hero1_star, hero2_star, hero3_star, total_star, hp, gear, hero_type, idu,
-		time, all_skill_info, battle_id, role
-	FROM deduplicated_data WHERE dedup_rn = 1
-	ORDER BY player_name, time DESC`
+	)`
 
-	var results []PlayerTeam
-	err := model.Conn.Raw(query,
+	args := []interface{}{
 		namePattern, unamePattern, iduPattern,
 		namePattern, unamePattern, iduPattern,
-	).Scan(&results).Error
-	if err != nil {
+	}
+
+	// 查询总数
+	var total int64
+	countQuery := baseQuery + ` SELECT COUNT(*) FROM deduplicated_data WHERE dedup_rn = 1`
+	if err := model.Conn.Raw(countQuery, args...).Scan(&total).Error; err != nil {
 		return global.Response{Message: "查询失败: " + err.Error()}.Error()
 	}
 
-	log.Printf("查询玩家队伍: name=%s, union=%s, idu=%s, 结果: %d条", name, uname, idu, len(results))
-	return global.Response{Data: results}.Success()
+	// 分页查询
+	offset := (page - 1) * pageSize
+	dataQuery := baseQuery + ` SELECT player_name, hero1_id, hero2_id, hero3_id, hero1_level, hero2_level, hero3_level,
+		hero1_star, hero2_star, hero3_star, total_star, hp, gear, hero_type, idu,
+		time, all_skill_info, battle_id, role
+		FROM deduplicated_data WHERE dedup_rn = 1
+		ORDER BY player_name, time DESC
+		LIMIT ? OFFSET ?`
+
+	var results []PlayerTeam
+	if err := model.Conn.Raw(dataQuery, append(args, pageSize, offset)...).Scan(&results).Error; err != nil {
+		return global.Response{Message: "查询失败: " + err.Error()}.Error()
+	}
+
+	log.Printf("查询玩家队伍: name=%s, union=%s, idu=%s, page=%d, total=%d, 结果: %d条", name, uname, idu, page, total, len(results))
+	return global.Response{Data: map[string]interface{}{
+		"list":     results,
+		"total":    total,
+		"page":     page,
+		"pageSize": pageSize,
+	}}.Success()
 }

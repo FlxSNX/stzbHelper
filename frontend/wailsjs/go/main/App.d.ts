@@ -15,6 +15,8 @@ export function DeleteTaskReport(arg1:number):Promise<string>;
 
 export function DisableGetBattleReport():Promise<string>;
 
+export function DisableGetReport():Promise<string>;
+
 export function EnableGetBattleReport():Promise<string>;
 
 export function EnableGetReport(arg1:number):Promise<string>;
@@ -25,7 +27,7 @@ export function GetGroupWu():Promise<string>;
 
 export function GetLogs():Promise<string>;
 
-export function GetPlayerTeam(arg1:string,arg2:string,arg3:string):Promise<string>;
+export function GetPlayerTeam(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number):Promise<string>;
 
 export function GetReportNumByTaskId(arg1:number):Promise<string>;
 

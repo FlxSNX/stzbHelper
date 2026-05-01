@@ -136,13 +136,13 @@ const copyResult = (name) => {
 .page-title {
     font-size: 20px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
     margin-bottom: 4px;
 }
 
 .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--color-text-secondary);
 }
 
 .method-header {
@@ -155,7 +155,7 @@ const copyResult = (name) => {
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 13px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--color-text);
 }
 
 .method-body {
@@ -178,13 +178,13 @@ const copyResult = (name) => {
 .param-label {
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 12px;
-    color: #64748b;
+    color: var(--color-text-secondary);
     min-width: 50px;
 }
 
 .method-result {
     margin-top: 12px;
-    background: #f8f9fb;
+    background: var(--color-bg);
     border-radius: 8px;
     padding: 12px;
 }
@@ -198,14 +198,14 @@ const copyResult = (name) => {
 
 .result-time {
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--color-text-secondary);
 }
 
 .result-json {
     font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 12px;
     line-height: 1.5;
-    color: #334155;
+    color: var(--color-text);
     margin: 0;
     white-space: pre-wrap;
     word-break: break-all;
