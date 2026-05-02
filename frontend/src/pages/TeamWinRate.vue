@@ -437,6 +437,15 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                 </div>
             </div>
 
+            <div class="pagination-wrap" v-if="total > pageSize">
+                <n-pagination
+                    v-model:page="page"
+                    :page-size="pageSize"
+                    :item-count="total"
+                    :on-update:page="(p) => doSearch(p)"
+                />
+            </div>
+
             <div class="result-area" v-if="loading">
                 <div class="loading-wrap">
                     <n-spin size="medium" />
@@ -615,14 +624,6 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                     </div>
                 </template>
 
-                <div class="pagination-wrap" v-if="total > pageSize">
-                    <n-pagination
-                        v-model:page="page"
-                        :page-size="pageSize"
-                        :item-count="total"
-                        :on-update:page="(p) => doSearch(p)"
-                    />
-                </div>
             </div>
         </n-card>
     </div>

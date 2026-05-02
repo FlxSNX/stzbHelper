@@ -227,6 +227,15 @@ const roleType = (role) => role === 'attack' ? 'error' : 'info'
                 </n-button>
             </div>
 
+            <div class="pagination-wrap" v-if="total > pageSize">
+                <n-pagination
+                    v-model:page="page"
+                    :page-size="pageSize"
+                    :item-count="total"
+                    :on-update:page="(p) => doSearch(p)"
+                />
+            </div>
+
             <div class="result-area" v-if="loading">
                 <div class="loading-wrap">
                     <n-spin size="medium" />
@@ -374,14 +383,6 @@ const roleType = (role) => role === 'attack' ? 'error' : 'info'
                     </div>
                 </div>
 
-                <div class="pagination-wrap" v-if="total > pageSize">
-                    <n-pagination
-                        v-model:page="page"
-                        :page-size="pageSize"
-                        :item-count="total"
-                        :on-update:page="(p) => doSearch(p)"
-                    />
-                </div>
             </div>
         </n-card>
     </div>
