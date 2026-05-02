@@ -90,6 +90,10 @@ export function GetTeamWinRate(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
   return window['go']['main']['App']['GetTeamWinRate'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
+export function GetTeamWinRateByTeam(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['GetTeamWinRateByTeam'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
 export function GetVersion() {
   return window['go']['main']['App']['GetVersion']();
 }

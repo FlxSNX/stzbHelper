@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 import { NCard, NButton, NInput, NInputNumber, NEmpty, NSpin, NTag, NPagination, NDataTable, useMessage } from 'naive-ui'
-import { GetTeamWinRate } from '../../wailsjs/go/main/App'
+import { GetTeamWinRate, GetTeamWinRateByTeam } from '../../wailsjs/go/main/App'
 import { Search, Swords, Image, Table, Users, Layers } from 'lucide-vue-next'
 import { herocfg, skillcfg } from '../cfg'
 
@@ -31,7 +31,8 @@ const doSearch = (newPage) => {
     loading.value = true
     results.value = []
     hasSearched.value = true
-    GetTeamWinRate(searchName.value, searchUnion.value, searchIdu.value, page.value, pageSize.value, minLevel.value, minHp.value).then(v => {
+    const apiFn = groupByPlayer.value ? GetTeamWinRate : GetTeamWinRateByTeam
+    apiFn(searchName.value, searchUnion.value, searchIdu.value, page.value, pageSize.value, minLevel.value, minHp.value).then(v => {
         let resp = JSON.parse(v)
         if (resp.code == 200) {
             results.value = resp.data.list || []
@@ -142,55 +143,21 @@ const lossRateColor = (rate) => {
     return '#22c55e'
 }
 
-const teamKey = (r) => `${r.hero1_id}_${r.hero2_id}_${r.hero3_id}`
-
 const groupedResults = computed(() => {
-    if (groupByPlayer.value) {
-        const map = {}
-        results.value.forEach(r => {
-            if (!map[r.player_name]) map[r.player_name] = []
-            map[r.player_name].push(r)
-        })
-        return map
-    } else {
-        const map = {}
-        results.value.forEach(r => {
-            const key = teamKey(r)
-            if (!map[key]) {
-                map[key] = {
-                    hero1_id: r.hero1_id, hero2_id: r.hero2_id, hero3_id: r.hero3_id,
-                    hero1_level: r.hero1_level, hero2_level: r.hero2_level, hero3_level: r.hero3_level,
-                    hero1_star: r.hero1_star, hero2_star: r.hero2_star, hero3_star: r.hero3_star,
-                    total_star: r.total_star, total_battles: 0, win_count: 0, loss_count: 0, draw_count: 0,
-                    players: [], last_time: 0, all_skill_info: r.all_skill_info || '', role: r.role || 'attack',
-                }
-            }
-            const t = map[key]
-            t.total_battles += r.total_battles
-            t.win_count += r.win_count
-            t.loss_count += r.loss_count
-            t.draw_count += r.draw_count
-            if (r.last_time > t.last_time) {
-                t.last_time = r.last_time
-                if (r.all_skill_info) t.all_skill_info = r.all_skill_info
-                if (r.role) t.role = r.role
-            }
-            if (!t.players.includes(r.player_name)) t.players.push(r.player_name)
-            if (r.hero1_level > t.hero1_level) t.hero1_level = r.hero1_level
-            if (r.hero2_level > t.hero2_level) t.hero2_level = r.hero2_level
-            if (r.hero3_level > t.hero3_level) t.hero3_level = r.hero3_level
-        })
-        Object.values(map).forEach(t => {
-            t.win_rate = t.total_battles > 0 ? Math.round(t.win_count / t.total_battles * 1000) / 10 : 0
-        })
-        return map
-    }
+    const map = {}
+    results.value.forEach(r => {
+        if (!map[r.player_name]) map[r.player_name] = []
+        map[r.player_name].push(r)
+    })
+    return map
 })
 
-// 表格数据：按队伍模式时使用聚合数据
-const tableData = computed(() => {
-    if (groupByPlayer.value) return results.value
-    return Object.values(groupedResults.value)
+const tableData = computed(() => results.value)
+
+watch(groupByPlayer, () => {
+    page.value = 1
+    results.value = []
+    if (hasSearched.value) doSearch()
 })
 
 const playerColumns = [
@@ -312,6 +279,12 @@ const teamColumns = [
         render(row) {
             return [1, 2, 3].map(i => getHeroName(row[`hero${i}_id`])).join(' / ')
         }
+    },
+    {
+        title: '玩家',
+        key: 'players',
+        width: 160,
+        ellipsis: { tooltip: true },
     },
     {
         title: '战法',
@@ -459,7 +432,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 
             <div class="result-area" v-else-if="results.length > 0">
                 <div class="result-summary">
-                    共 <strong>{{ total }}</strong> 支队伍
+                    共 <strong>{{ total }}</strong> {{ groupByPlayer ? '条记录' : '支队伍' }}
                 </div>
 
                 <!-- 表格模式 -->
@@ -469,7 +442,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                         :data="tableData"
                         :bordered="false"
                         size="small"
-                        :scroll-x="groupByPlayer ? 1320 : 1050"
+                        :scroll-x="groupByPlayer ? 1320 : 1220"
                     />
                 </template>
 
@@ -557,8 +530,9 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 
                 <!-- 大图模式 按队伍组合 -->
                 <template v-else>
-                    <div class="team-card" v-for="(team, key) in groupedResults" :key="key">
+                    <div class="team-card" v-for="(team, key) in results" :key="key">
                         <div class="team-header">
+                            <span class="team-idu" v-if="team.players">玩家: {{ team.players }}</span>
                             <span class="team-time">{{ formatTime(team.last_time) }}</span>
                         </div>
 
