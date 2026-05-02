@@ -35,8 +35,8 @@ a {
 
 // 滚动条样式
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -44,10 +44,10 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: rgba(128, 128, 128, 0.2);
-    border-radius: 3px;
+    background-color: rgba(128, 128, 128, 0.4);
+    border-radius: 2px;
 
     &:hover {
-        background-color: rgba(128, 128, 128, 0.35);
+        background-color: rgba(128, 128, 128, 0.65);
     }
 }
