@@ -11,14 +11,172 @@ import (
 	"strings"
 	"stzbHelper/global"
 	"stzbHelper/model"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+func parseBookData(data []byte) {
+	var raw []interface{}
+	err := json.Unmarshal(data, &raw)
+	if err != nil {
+		log.Println("解析主公簿数据失败:", err)
+		return
+	}
+	if len(raw) < 2 {
+		return
+	}
+	dataMap, ok := raw[1].(map[string]interface{})
+	if !ok {
+		return
+	}
+
+	result := map[string]interface{}{}
+
+	// log.role_name, log.liked
+	if logData, ok := dataMap["log"].(map[string]interface{}); ok {
+		if v, ok := logData["role_name"].(string); ok {
+			result["role_name"] = v
+		}
+		if v, ok := logData["liked"]; ok {
+			result["likes"] = v
+		}
+	}
+
+	// server[0]
+	if server, ok := dataMap["server"].([]interface{}); ok && len(server) > 0 {
+		result["server"] = server[0]
+	}
+
+	// personal 数组
+	if personal, ok := dataMap["personal"].([]interface{}); ok {
+		if len(personal) > 14 {
+			result["power"] = personal[14]
+		}
+		if len(personal) > 41 {
+			result["main_city_pos"] = personal[41]
+		}
+	}
+
+	// union [0,"",id,"同盟名","分组名",...]
+	if union, ok := dataMap["union"].([]interface{}); ok {
+		if len(union) > 3 {
+			result["alliance_name"] = union[3]
+		}
+		if len(union) > 4 {
+			result["group_name"] = union[4]
+		}
+	}
+
+	// history [登录天数, 最高灭敌, 最高武勋, 最高势力, 赛季参与数, 最高攻城, [灭敌数,武将名,武将ID], ...]
+	if history, ok := dataMap["history"].([]interface{}); ok {
+		if len(history) > 0 {
+			result["login_days"] = history[0]
+		}
+		if len(history) > 1 {
+			result["max_season_kills"] = history[1]
+		}
+		if len(history) > 2 {
+			result["max_merit"] = history[2]
+		}
+		if len(history) > 3 {
+			result["max_power"] = history[3]
+		}
+		if len(history) > 4 {
+			result["season_count"] = history[4]
+		}
+		if len(history) > 5 {
+			result["max_season_siege"] = history[5]
+		}
+		if len(history) > 6 {
+			if team, ok := history[6].([]interface{}); ok && len(team) > 2 {
+				result["best_team_kills"] = team[0]
+				result["best_team_hero_name"] = team[1]
+				result["best_team_hero_id"] = team[2]
+			}
+		}
+		if len(history) > 7 {
+			result["max_season_demolish"] = history[7]
+		}
+	}
+
+	// zanAndvistor [访客数, 点赞数, []]
+	if zv, ok := dataMap["zanAndvistor"].([]interface{}); ok {
+		if len(zv) > 0 {
+			result["visitors"] = zv[0]
+		}
+	}
+
+	// city_card ["[\"ip\",\"code\",\"location\"]", ...]
+	if cc, ok := dataMap["city_card"].([]interface{}); ok && len(cc) > 0 {
+		if ccStr, ok := cc[0].(string); ok && ccStr != "" {
+			var ccArr []interface{}
+			if json.Unmarshal([]byte(ccStr), &ccArr) == nil {
+				if len(ccArr) > 0 {
+					result["ip"] = ccArr[0]
+				}
+				if len(ccArr) > 2 {
+					result["location"] = ccArr[2]
+				}
+			}
+		}
+	}
+
+	result["raw"] = dataMap
+
+	if global.AppCtx != nil {
+		runtime.EventsEmit(global.AppCtx, "bookData", result)
+	}
+}
+
+// func parseBattleCallData(data []byte) {
+// 	var raw []interface{}
+// 	err := json.Unmarshal(data, &raw)
+// 	if err != nil {
+// 		log.Println("解析战役叫阵数据失败:", err)
+// 		return
+// 	}
+
+// 	var messages []map[string]interface{}
+// 	for _, item := range raw {
+// 		entry, ok := item.([]interface{})
+// 		if !ok || len(entry) < 2 {
+// 			continue
+// 		}
+// 		fields, ok := entry[1].([]interface{})
+// 		if !ok {
+// 			continue
+// 		}
+// 		msg := map[string]interface{}{}
+// 		if len(fields) > 4 {
+// 			msg["content"] = fields[4]
+// 		}
+// 		if len(fields) > 5 {
+// 			msg["timestamp"] = fields[5]
+// 		}
+// 		if len(fields) > 7 {
+// 			msg["alliance_name"] = fields[7]
+// 		}
+// 		if len(fields) > 44 {
+// 			msg["player_name"] = fields[44]
+// 		}
+// 		messages = append(messages, msg)
+// 	}
+
+// 	if global.AppCtx != nil {
+// 		runtime.EventsEmit(global.AppCtx, "battleCallData", messages, string(data))
+// 	}
+// }
 
 func ParseData(cmdId int, data []byte) {
 	if global.IsDebug {
 		log.Println("收到[" + strconv.Itoa(cmdId) + "]消息:" + string(parseZlibData(data)))
 	}
 
-	if cmdId == 103 {
+	if cmdId == 724 {
+		// if global.ExVar.NeedPushBattleCallData {
+		// 	go parseBattleCallData(parseZlibData(data))
+		// }
+	} else if cmdId == 103 {
 		parseTeamUser(data)
 	} else if cmdId == 92 {
 		if global.ExVar.NeedGetBattleData {

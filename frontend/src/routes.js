@@ -8,6 +8,9 @@ import Logs from './pages/Logs.vue';
 import NpcapHelp from './pages/NpcapHelp.vue';
 import Debug from './pages/Debug.vue';
 import TeamQuery from './pages/TeamQuery.vue';
+import Book from './pages/Book.vue';
+// import BattleCall from './pages/BattleCall.vue';
+import TeamWinRate from './pages/TeamWinRate.vue';
 import { CheckNpcap } from '../wailsjs/go/main/App';
 
 const routes = [
@@ -64,7 +67,25 @@ const routes = [
         name: 'teamquery',
         component: TeamQuery,
         meta: { title: '队伍查询' }
-    }
+    },
+    {
+        path: '/teamwinrate',
+        name: 'teamwinrate',
+        component: TeamWinRate,
+        meta: { title: '队伍胜率' }
+    },
+    {
+        path: '/book',
+        name: 'book',
+        component: Book,
+        meta: { title: '主公簿' }
+    },
+    // {
+    //     path: '/battlecall',
+    //     name: 'battlecall',
+    //     component: BattleCall,
+    //     meta: { title: '战役叫阵' }
+    // }
 ]
 
 const router = createRouter({

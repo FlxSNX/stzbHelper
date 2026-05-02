@@ -202,38 +202,45 @@ func handlePacket(packet gopacket.Packet) {
 
 				}
 
-				if cmdId == 3686 && databaseSelected == false {
+				if cmdId == 3686 {
 					var data []byte
 					if buf[12] == 5 {
 						data = []byte(DecodeType5(buf[12:]))
 					} else if buf[12] == 3 {
 						data = parseZlibData(buf[17:])
 					}
-					var raw []interface{}
-					err := json.Unmarshal([]byte(data), &raw)
-					if err != nil {
-						log.Fatal(err)
-					} else {
-						dataMap := raw[1].(map[string]interface{})
-						server, ok := dataMap["server"].([]interface{})
-						if ok {
-							log.Printf("服务器信息: %v\n", server)
-						}
 
-						var roleName string
-						if logData, ok := dataMap["log"].(map[string]interface{}); ok {
-							roleName = logData["role_name"].(string)
-							log.Printf("角色名: %s\n", roleName)
-						}
+					if global.ExVar.NeedPushBookData {
+						go parseBookData(data)
+					}
 
-						log.Println("本地IP：" + dstIP)
-						log.Println("游戏服务器IP：" + srcIP)
-						global.OnlySrcIp = srcIP
-						global.OnlyDstIp = dstIP
-						dabesename := roleName + "_" + server[0].(string)
-						log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
-						model.InitDB(dabesename)
-						databaseSelected = true
+					if databaseSelected == false {
+						var raw []interface{}
+						err := json.Unmarshal([]byte(data), &raw)
+						if err != nil {
+							log.Fatal(err)
+						} else {
+							dataMap := raw[1].(map[string]interface{})
+							server, ok := dataMap["server"].([]interface{})
+							if ok {
+								log.Printf("服务器信息: %v\n", server)
+							}
+
+							var roleName string
+							if logData, ok := dataMap["log"].(map[string]interface{}); ok {
+								roleName = logData["role_name"].(string)
+								log.Printf("角色名: %s\n", roleName)
+							}
+
+							log.Println("本地IP：" + dstIP)
+							log.Println("游戏服务器IP：" + srcIP)
+							global.OnlySrcIp = srcIP
+							global.OnlyDstIp = dstIP
+							dabesename := roleName + "_" + server[0].(string)
+							log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
+							model.InitDB(dabesename)
+							databaseSelected = true
+						}
 					}
 				}
 			}

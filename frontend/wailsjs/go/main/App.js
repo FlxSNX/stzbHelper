@@ -26,12 +26,20 @@ export function DeleteTaskReport(arg1) {
   return window['go']['main']['App']['DeleteTaskReport'](arg1);
 }
 
+export function DisableBookData() {
+  return window['go']['main']['App']['DisableBookData']();
+}
+
 export function DisableGetBattleReport() {
   return window['go']['main']['App']['DisableGetBattleReport']();
 }
 
 export function DisableGetReport() {
   return window['go']['main']['App']['DisableGetReport']();
+}
+
+export function EnableBookData() {
+  return window['go']['main']['App']['EnableBookData']();
 }
 
 export function EnableGetBattleReport() {
@@ -76,6 +84,10 @@ export function GetTeamGroup() {
 
 export function GetTeamUser() {
   return window['go']['main']['App']['GetTeamUser']();
+}
+
+export function GetTeamWinRate(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['GetTeamWinRate'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function GetVersion() {

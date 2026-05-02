@@ -13,9 +13,13 @@ export function DeleteTask(arg1:number):Promise<string>;
 
 export function DeleteTaskReport(arg1:number):Promise<string>;
 
+export function DisableBookData():Promise<string>;
+
 export function DisableGetBattleReport():Promise<string>;
 
 export function DisableGetReport():Promise<string>;
+
+export function EnableBookData():Promise<string>;
 
 export function EnableGetBattleReport():Promise<string>;
 
@@ -38,6 +42,8 @@ export function GetTaskList():Promise<string>;
 export function GetTeamGroup():Promise<string>;
 
 export function GetTeamUser():Promise<string>;
+
+export function GetTeamWinRate(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number):Promise<string>;
 
 export function GetVersion():Promise<string>;
 
