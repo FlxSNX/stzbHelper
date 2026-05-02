@@ -197,13 +197,13 @@ const playerColumns = [
     {
         title: '玩家',
         key: 'player_name',
-        width: 160,
+        width: 120,
         ellipsis: { tooltip: true },
     },
     {
         title: '队伍',
         key: 'heroes',
-        width: 300,
+        minWidth: 200,
         render(row) {
             return [1, 2, 3].map(i => `${getHeroName(row[`hero${i}_id`])}(${getHeroType(row[`hero${i}_id`])})`).join(' / ')
         }
@@ -211,13 +211,14 @@ const playerColumns = [
     {
         title: '战法',
         key: 'skills',
-        width: 300,
+        width: 200,
         render(row) {
             const groups = parseSkillInfo(row.all_skill_info, row.role)
-            return groups.map(g => {
+            const lines = groups.map(g => {
                 const names = g.skills.slice(1).filter(s => s.id && s.id !== '0').map(s => getSkillName(s.id))
                 return names.join('/')
-            }).filter(Boolean).join(' | ')
+            }).filter(Boolean)
+            return h('div', { style: { whiteSpace: 'pre-line' } }, lines.join('\n'))
         }
     },
     {
@@ -307,7 +308,7 @@ const teamColumns = [
     {
         title: '队伍',
         key: 'heroes',
-        width: 300,
+        minWidth: 200,
         render(row) {
             return [1, 2, 3].map(i => getHeroName(row[`hero${i}_id`])).join(' / ')
         }
@@ -315,13 +316,14 @@ const teamColumns = [
     {
         title: '战法',
         key: 'skills',
-        width: 300,
+        width: 200,
         render(row) {
             const groups = parseSkillInfo(row.all_skill_info, row.role)
-            return groups.map(g => {
+            const lines = groups.map(g => {
                 const names = g.skills.slice(1).filter(s => s.id && s.id !== '0').map(s => getSkillName(s.id))
                 return names.join('/')
-            }).filter(Boolean).join(' | ')
+            }).filter(Boolean)
+            return h('div', { style: { whiteSpace: 'pre-line' } }, lines.join('\n'))
         }
     },
     {
@@ -458,7 +460,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                         :data="tableData"
                         :bordered="false"
                         size="small"
-                        :scroll-x="groupByPlayer ? 1500 : 1200"
+                        :scroll-x="groupByPlayer ? 1320 : 1050"
                     />
                 </template>
 
@@ -634,6 +636,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 
 .page-card {
     border-radius: 12px;
+    overflow: hidden;
 }
 
 .page-header {
@@ -688,6 +691,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 
 .result-area {
     min-height: 200px;
+    overflow-x: auto;
 }
 
 .loading-wrap {
