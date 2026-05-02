@@ -577,8 +577,8 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 			CASE WHEN result IN (1,2,3,4,10,18,19) THEN 1 ELSE 0 END AS win
 		FROM battle_report
 		WHERE attack_hero1_id != 0 AND attack_hero2_id != 0 AND attack_hero3_id != 0
-			AND attack_hero1_level >= 15 AND attack_hero2_level >= 15 AND attack_hero3_level >= 15
-			AND attack_hp >= 10000
+			AND attack_hero1_level >= 30 AND attack_hero2_level >= 30 AND attack_hero3_level >= 30
+			AND attack_hp >= 15000
 			AND attack_name LIKE ? AND attack_union_name LIKE ? AND attack_idu LIKE ?
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 		UNION ALL
@@ -603,8 +603,8 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 			CASE WHEN result = 0 THEN 1 ELSE 0 END AS win
 		FROM battle_report
 		WHERE defend_hero1_id != 0 AND defend_hero2_id != 0 AND defend_hero3_id != 0
-			AND defend_hero1_level >= 15 AND defend_hero2_level >= 15 AND defend_hero3_level >= 15
-			AND defend_hp >= 10000
+			AND defend_hero1_level >= 30 AND defend_hero2_level >= 30 AND defend_hero3_level >= 30
+			AND defend_hp >= 15000
 			AND defend_name LIKE ? AND defend_union_name LIKE ? AND defend_idu LIKE ?
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 	),
