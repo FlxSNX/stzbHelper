@@ -627,7 +627,7 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 			MAX(hero2_star) AS hero2_star,
 			MAX(hero3_star) AS hero3_star,
 			MAX(total_star) AS total_star,
-			MAX(idu) AS idu,
+			SUBSTR(MAX(time || '|' || idu), INSTR(MAX(time || '|' || idu), '|') + 1) AS idu,
 			MAX(time) AS last_time,
 			SUBSTR(MAX(time || '_' || all_skill_info), INSTR(MAX(time || '_' || all_skill_info), '_') + 1) AS all_skill_info,
 			SUBSTR(MAX(time || '_' || role), INSTR(MAX(time || '_' || role), '_') + 1) AS role,
