@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, h } from 'vue'
-import { NCard, NButton, NInput, NEmpty, NSpin, NTag, NPagination, NDataTable, useMessage } from 'naive-ui'
+import { NCard, NButton, NInput, NInputNumber, NEmpty, NSpin, NTag, NPagination, NDataTable, useMessage } from 'naive-ui'
 import { GetTeamWinRate } from '../../wailsjs/go/main/App'
 import { Search, Swords, Image, Table, Users, Layers } from 'lucide-vue-next'
 import { herocfg, skillcfg } from '../cfg'
@@ -15,6 +15,8 @@ const results = ref([])
 const searchName = ref('')
 const searchUnion = ref('')
 const searchIdu = ref('')
+const minLevel = ref(30)
+const minHp = ref(20000)
 
 const hasSearched = ref(false)
 const useImageMode = ref(true)
@@ -29,7 +31,7 @@ const doSearch = (newPage) => {
     loading.value = true
     results.value = []
     hasSearched.value = true
-    GetTeamWinRate(searchName.value, searchUnion.value, searchIdu.value, page.value, pageSize.value).then(v => {
+    GetTeamWinRate(searchName.value, searchUnion.value, searchIdu.value, page.value, pageSize.value, minLevel.value, minHp.value).then(v => {
         let resp = JSON.parse(v)
         if (resp.code == 200) {
             results.value = resp.data.list || []
@@ -422,6 +424,16 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                     {{ useImageMode ? '图片' : '表格' }}
                 </n-button>
             </div>
+            <div class="filter-bar">
+                <div class="filter-item">
+                    <span class="filter-label">最低等级</span>
+                    <n-input-number v-model:value="minLevel" :min="1" :max="50" style="width: 100px;" />
+                </div>
+                <div class="filter-item">
+                    <span class="filter-label">最低兵力</span>
+                    <n-input-number v-model:value="minHp" :min="0" :max="99999" :step="1000" style="width: 130px;" />
+                </div>
+            </div>
 
             <div class="result-area" v-if="loading">
                 <div class="loading-wrap">
@@ -653,6 +665,25 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 .search-bar .n-input {
     flex: 1;
     min-width: 160px;
+}
+
+.filter-bar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
 }
 
 .result-area {
