@@ -75,7 +75,7 @@ onMounted(() => {
         }
     }).catch(() => {})
 
-    GetTeamUser().then(v => {
+    GetTeamUser("").then(v => {
         let data = JSON.parse(v)
         if (data.data) {
             memberCount.value = data.data.length

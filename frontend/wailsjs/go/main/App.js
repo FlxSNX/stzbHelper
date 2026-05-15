@@ -82,8 +82,8 @@ export function GetTeamGroup() {
   return window['go']['main']['App']['GetTeamGroup']();
 }
 
-export function GetTeamUser() {
-  return window['go']['main']['App']['GetTeamUser']();
+export function GetTeamUser(arg1) {
+  return window['go']['main']['App']['GetTeamUser'](arg1);
 }
 
 export function GetTeamWinRate(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {

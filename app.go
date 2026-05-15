@@ -40,9 +40,12 @@ func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
 }
 
-func (a *App) GetTeamUser() string {
+func (a *App) GetTeamUser(group string) string {
 	var teamUsers []model.TeamUser
 	query := model.Conn
+	if group != "" {
+		query = query.Where("`group` = ?", group)
+	}
 	query.Find(&teamUsers)
 
 	return global.Response{Data: teamUsers}.Success()
@@ -82,25 +85,36 @@ func (a *App) CreateTask(name string, tasktime int, target []string, taskpos []s
 // GetTaskList 获取任务列表
 func (a *App) GetTaskList() string {
 	var tasks []model.Task
-	model.Conn.Find(&tasks)
+	model.Conn.Omit("user_list").Order("id DESC").Find(&tasks)
 	return global.Response{Data: tasks}.Success()
 }
 
 // GetGroupWu 获取分组武勋统计
 func (a *App) GetGroupWu() string {
 	type GroupWu struct {
-		Group       string  `json:"group"`
-		MemberCount int     `json:"member_count"`
-		TotalWu     int     `json:"total_wu"`
-		AverageWu   float64 `json:"average_wu"`
-		ZeroWuCount int     `json:"zero_wu_count"`
+		Group       string `json:"group"`
+		MemberCount int    `json:"member_count"`
+		TotalWu     int    `json:"total_wu"`
+		AverageWu   int    `json:"average_wu"`
+		ZeroWuCount int    `json:"zero_wu_count"`
 	}
 
+	subQuery := model.Conn.Model(&model.TeamUser{}).
+		Select("`group`, COUNT(*) as zero_wu_count").
+		Where("wu = 0").
+		Group("`group`")
+
 	var results []GroupWu
-	model.Conn.Model(&model.TeamUser{}).
-		Select("`group`, count(*) as member_count, sum(wu) as total_wu, avg(wu) as average_wu, sum(case when wu = 0 then 1 else 0 end) as zero_wu_count").
-		Group("`group`").
-		Scan(&results)
+	err := model.Conn.Model(&model.TeamUser{}).
+		Select("`team_user`.`group`, SUM(wu) as total_wu, ROUND(AVG(wu)) as average_wu, IFNULL(sub.zero_wu_count, 0) as zero_wu_count, COUNT(*) as member_count").
+		Joins("LEFT JOIN (?) as sub ON sub.`group` = `team_user`.`group`", subQuery).
+		Group("`team_user`.`group`").
+		Order("total_wu DESC").
+		Scan(&results).Error
+
+	if err != nil {
+		return global.Response{Message: "查询失败: " + err.Error()}.Error()
+	}
 
 	return global.Response{Data: results}.Success()
 }
@@ -148,41 +162,43 @@ func (a *App) StatisticsReport(id int) string {
 		return global.Response{Message: "任务不存在"}.Error()
 	}
 
-	// 获取该坐标的所有战报
-	var reports []model.Report
-	model.Conn.Where("wid = ?", task.Pos).Find(&reports)
-
-	log.Printf("统计任务[%s]的考勤, 坐标%d, 共%d条战报", task.Name, task.Pos, len(reports))
-
 	if task.UserList == nil {
 		task.UserList = map[int]*model.TaskUserList{}
 	}
 
-	// 统计每个成员的出勤
-	for _, report := range reports {
-		// 根据 attack_name 匹配成员
-		for _, user := range task.UserList {
-			if user.Name == report.AttackName {
-				// 判断是主力还是拆迁
-				if report.AttackHp > 0 {
-					user.AtkNum++
-					user.AtkTeamNum++
-				}
-				break
-			}
+	task.CompleteUserNum = 0
+	for idx, user := range task.UserList {
+		// 查询总战报数量
+		var num int64
+		model.Conn.Model(&model.Report{}).Where("wid = ? AND attack_name = ?", task.Pos, user.Name).Count(&num)
+
+		// 查询攻城次数 (主力)
+		var atkNum int64
+		model.Conn.Model(&model.Report{}).Where("wid = ? AND attack_name = ? AND garrison = 0", task.Pos, user.Name).Count(&atkNum)
+
+		// 查询拆迁次数
+		var disNum int64
+		model.Conn.Model(&model.Report{}).Where("wid = ? AND attack_name = ? AND garrison = 1", task.Pos, user.Name).Count(&disNum)
+
+		// 主力队伍数量
+		var atkTeamNum int64
+		model.Conn.Model(&model.Report{}).Where("wid = ? AND attack_name = ? AND garrison = 0", task.Pos, user.Name).Group("attack_base_heroid").Count(&atkTeamNum)
+
+		// 拆迁队伍数量
+		var disTeamNum int64
+		model.Conn.Model(&model.Report{}).Where("wid = ? AND attack_name = ? AND garrison = 1", task.Pos, user.Name).Group("attack_base_heroid").Count(&disTeamNum)
+
+		task.UserList[idx].AtkNum = int(atkNum)
+		task.UserList[idx].DisNum = int(disNum)
+		task.UserList[idx].AtkTeamNum = int(atkTeamNum)
+		task.UserList[idx].DisTeamNum = int(disTeamNum)
+
+		if atkNum != 0 || disNum != 0 {
+			task.CompleteUserNum++
 		}
 	}
 
-	// 计算实际到的人数
-	completeNum := 0
-	for _, user := range task.UserList {
-		if user.AtkNum > 0 || user.DisNum > 0 {
-			completeNum++
-		}
-	}
-	task.CompleteUserNum = completeNum
 	task.Status = 1
-
 	model.Conn.Save(&task)
 
 	return global.Response{Message: "统计完成"}.Success()
@@ -399,6 +415,7 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pag
 		Gear         string `json:"gear"`
 		HeroType     string `json:"hero_type"`
 		Idu          string `json:"idu"`
+		TeamId       string `json:"team-id"`
 	}
 
 	if page < 1 {

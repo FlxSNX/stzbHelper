@@ -35,7 +35,7 @@ function getUserList() {
     loading.value = true
     teamUsers.value = []
     usersNum.value = 0
-    GetTeamUser().then(v => {
+    GetTeamUser("").then(v => {
         let data = JSON.parse(v)
         teamUsers.value = data.data
         usersNum.value = data.data.length
