@@ -5,12 +5,13 @@ go 1.23
 require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/google/gopacket v1.1.19
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	golang.org/x/sys v0.30.0
 	gorm.io/gorm v1.31.1
 )
 
 require (
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect

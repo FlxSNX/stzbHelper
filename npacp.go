@@ -8,6 +8,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"log"
+	"path/filepath"
 	"strconv"
 	"stzbHelper/global"
 	"stzbHelper/model"
@@ -237,8 +238,8 @@ func handlePacket(packet gopacket.Packet) {
 							global.OnlySrcIp = srcIP
 							global.OnlyDstIp = dstIP
 							dabesename := roleName + "_" + server[0].(string)
-							log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
-							model.InitDB(dabesename)
+						log.Println("收到主公簿数据，将打开数据库文件" + dabesename + ".db")
+						model.InitDB(filepath.Join(global.AppDir, dabesename))
 							databaseSelected = true
 						}
 					}

@@ -43,9 +43,9 @@ export function GetTeamGroup():Promise<string>;
 
 export function GetTeamUser(arg1:string):Promise<string>;
 
-export function GetTeamWinRate(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number,arg6:number,arg7:number):Promise<string>;
+export function GetTeamWinRate(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number,arg7:number,arg8:number):Promise<string>;
 
-export function GetTeamWinRateByTeam(arg1:string,arg2:string,arg3:string,arg4:number,arg5:number,arg6:number,arg7:number):Promise<string>;
+export function GetTeamWinRateByTeam(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number,arg7:number,arg8:number):Promise<string>;
 
 export function GetVersion():Promise<string>;
 

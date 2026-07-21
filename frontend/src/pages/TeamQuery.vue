@@ -2,8 +2,9 @@
 import { ref } from 'vue'
 import { NCard, NButton, NInput, NEmpty, NSpin, NTag, NPagination, useMessage } from 'naive-ui'
 import { GetPlayerTeam } from '../../wailsjs/go/main/App'
-import { Search, Swords, Star, Image } from 'lucide-vue-next'
+import { Search, Swords, Star, Image, Download } from 'lucide-vue-next'
 import { herocfg, skillcfg, gear_feature_cfg, gear_cfg } from '../cfg'
+import * as XLSX from 'xlsx'
 
 const heroMap = JSON.parse(herocfg)
 const skillMap = JSON.parse(skillcfg)
@@ -20,7 +21,7 @@ const searchUnion = ref('')
 const searchIdu = ref('')
 
 const hasSearched = ref(false)
-const useBigImage = ref(true)
+const useBigImage = ref(false)
 const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
@@ -201,6 +202,68 @@ const groupedResults = () => {
 
 const roleLabel = (role) => role === 'attack' ? '进攻' : '防守'
 const roleType = (role) => role === 'attack' ? 'error' : 'info'
+
+const exportExcel = () => {
+    if (results.value.length === 0) {
+        nmessage.warning('没有可导出的数据')
+        return
+    }
+    const data = results.value.map(row => {
+        const positions = ['大营', '中军', '前锋']
+        const heroFields = [1, 2, 3]
+        const groups = parseSkillInfo(row.all_skill_info, row)
+        const gears = row.gear ? parseGearInfo(row.gear, row) : []
+
+        const heroCells = heroFields.map(i => {
+            const id = row[`hero${i}_id`]
+            const name = getHeroName(id)
+            const country = getHeroCountry(id)
+            const type = getHeroType(id)
+            const star = row[`hero${i}_star`]
+            const level = row[`hero${i}_level`]
+            let text = `${star}红\n${level}级\n${name}-${country}-${type}`
+            if (gears[i - 1] && gears[i - 1].gearId && gears[i - 1].gearId !== '0') {
+                const gName = getGearName(gears[i - 1].gearId)
+                const gEntry = getGearEntryName(gears[i - 1].entryId)
+                text += `\n${gName}(${gEntry}) ${gears[i - 1].level}级`
+            }
+            return text
+        })
+
+        const skillCells = heroFields.map(i => {
+            const g = groups[i - 1]
+            if (!g) return ''
+            return g.skills.filter(s => s.id && s.id !== '0').map(s => {
+                return `${getSkillName(s.id)} ${s.level}级`
+            }).join('\n')
+        })
+
+        return {
+            '名字': row.player_name,
+            '阵容红度': row.total_star,
+            '大营武将': heroCells[0],
+            '中军武将': heroCells[1],
+            '前锋武将': heroCells[2],
+            '大营技能': skillCells[0],
+            '中军技能': skillCells[1],
+            '前锋技能': skillCells[2],
+            '记录类型': roleLabel(row.role),
+            '记录时间': formatTime(row.time),
+        }
+    })
+    const ws = XLSX.utils.json_to_sheet(data)
+    ws['!cols'] = [
+        { wch: 10 }, { wch: 8 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
+        { wch: 25 }, { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 16 },
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '队伍查询')
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const filename = `队伍查询_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`
+    XLSX.writeFile(wb, filename)
+    nmessage.success('导出成功')
+}
 </script>
 
 <template>
@@ -224,6 +287,10 @@ const roleType = (role) => role === 'attack' ? 'error' : 'info'
                 <n-button quaternary :type="useBigImage ? 'primary' : 'default'" @click="useBigImage = !useBigImage" :title="useBigImage ? '切换小图' : '切换大图'">
                     <template #icon><Image :size="16" /></template>
                     {{ useBigImage ? '大图' : '小图' }}
+                </n-button>
+                <n-button quaternary @click="exportExcel" :disabled="results.length === 0">
+                    <template #icon><Download :size="16" /></template>
+                    导出
                 </n-button>
             </div>
 

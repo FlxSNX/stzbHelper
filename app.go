@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"stzbHelper/global"
@@ -278,11 +279,7 @@ func (a *App) DisableBookData() string {
 
 // GetDbList 获取当前目录下的数据库文件列表
 func (a *App) GetDbList() string {
-	exePath, err := os.Executable()
-	if err != nil {
-		return global.Response{Message: "获取程序路径失败: " + err.Error()}.Error()
-	}
-	dir := filepath.Dir(exePath)
+	dir := global.AppDir
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -304,12 +301,7 @@ func (a *App) CreateDb(name string) string {
 	if name == "" {
 		return global.Response{Message: "数据库名称不能为空"}.Error()
 	}
-	exePath, err := os.Executable()
-	if err != nil {
-		return global.Response{Message: "获取程序路径失败: " + err.Error()}.Error()
-	}
-	dir := filepath.Dir(exePath)
-	dbPath := filepath.Join(dir, name)
+	dbPath := filepath.Join(global.AppDir, name)
 
 	model.InitDB(dbPath)
 	if model.Conn == nil {
@@ -321,12 +313,7 @@ func (a *App) CreateDb(name string) string {
 
 // SelectDb 选择并初始化数据库
 func (a *App) SelectDb(name string) string {
-	exePath, err := os.Executable()
-	if err != nil {
-		return global.Response{Message: "获取程序路径失败: " + err.Error()}.Error()
-	}
-	dir := filepath.Dir(exePath)
-	dbPath := filepath.Join(dir, name)
+	dbPath := filepath.Join(global.AppDir, name)
 
 	model.InitDB(dbPath)
 	if model.Conn == nil {
@@ -397,6 +384,7 @@ func (a *App) CheckUpdate() string {
 func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pageSize int) string {
 	type PlayerTeam struct {
 		PlayerName   string `json:"player_name"`
+		UnionName    string `json:"union_name"`
 		BattleID     int    `json:"battle_id"`
 		Hero1ID      int    `json:"hero1_id"`
 		Hero2ID      int    `json:"hero2_id"`
@@ -432,6 +420,7 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pag
 	baseQuery := `WITH ranked_data AS (
 		SELECT
 			attack_name AS player_name,
+			attack_union_name AS union_name,
 			attack_hero1_id AS hero1_id,
 			attack_hero2_id AS hero2_id,
 			attack_hero3_id AS hero3_id,
@@ -463,6 +452,7 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pag
 		UNION ALL
 		SELECT
 			defend_name AS player_name,
+			defend_union_name AS union_name,
 			defend_hero1_id AS hero1_id,
 			defend_hero2_id AS hero2_id,
 			defend_hero3_id AS hero3_id,
@@ -505,25 +495,40 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pag
 		namePattern, unamePattern, iduPattern,
 	}
 
-	// 查询总数
-	var total int64
-	countQuery := baseQuery + ` SELECT COUNT(*) FROM deduplicated_data WHERE dedup_rn = 1`
-	if err := model.Conn.Raw(countQuery, args...).Scan(&total).Error; err != nil {
-		return global.Response{Message: "查询失败: " + err.Error()}.Error()
-	}
-
-	// 分页查询
-	offset := (page - 1) * pageSize
-	dataQuery := baseQuery + ` SELECT player_name, hero1_id, hero2_id, hero3_id, hero1_level, hero2_level, hero3_level,
+	dataQuery := baseQuery + ` SELECT player_name, union_name, hero1_id, hero2_id, hero3_id, hero1_level, hero2_level, hero3_level,
 		hero1_star, hero2_star, hero3_star, total_star, hp, gear, hero_type, idu,
 		time, all_skill_info, battle_id, role
 		FROM deduplicated_data WHERE dedup_rn = 1
-		ORDER BY player_name, time DESC
-		LIMIT ? OFFSET ?`
+		ORDER BY player_name, time DESC`
+
+	var allResults []PlayerTeam
+	if err := model.Conn.Raw(dataQuery, args...).Scan(&allResults).Error; err != nil {
+		return global.Response{Message: "查询失败: " + err.Error()}.Error()
+	}
+
+	var filtered []PlayerTeam
+	for _, r := range allResults {
+		if isMainSkillLevelValid(r.AllSkillInfo, r.Role, 10) {
+			filtered = append(filtered, r)
+		}
+	}
+
+	total := int64(len(filtered))
+
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > int(total) {
+		start = int(total)
+	}
+	if end > int(total) {
+		end = int(total)
+	}
 
 	var results []PlayerTeam
-	if err := model.Conn.Raw(dataQuery, append(args, pageSize, offset)...).Scan(&results).Error; err != nil {
-		return global.Response{Message: "查询失败: " + err.Error()}.Error()
+	if start < end {
+		results = filtered[start:end]
+	} else {
+		results = []PlayerTeam{}
 	}
 
 	log.Printf("查询玩家队伍: name=%s, union=%s, idu=%s, page=%d, total=%d, 结果: %d条", name, uname, idu, page, total, len(results))
@@ -535,8 +540,37 @@ func (a *App) GetPlayerTeam(name string, uname string, idu string, page int, pag
 	}}.Success()
 }
 
+func isMainSkillLevelValid(allSkillInfo string, role string, minLevel int) bool {
+	if allSkillInfo == "" {
+		return false
+	}
+	groups := strings.Split(allSkillInfo, ";")
+	for _, g := range groups {
+		parts := strings.Split(g, ",")
+		if len(parts) < 3 {
+			continue
+		}
+		idx, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue
+		}
+		if role == "attack" && idx >= 1 && idx <= 3 {
+			lv, err := strconv.Atoi(parts[2])
+			if err == nil && lv < minLevel {
+				return false
+			}
+		} else if role == "defend" && idx >= 4 && idx <= 6 {
+			lv, err := strconv.Atoi(parts[2])
+			if err == nil && lv < minLevel {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // GetTeamWinRate 查询队伍胜率统计
-func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pageSize int, minLevel int, minHp int) string {
+func (a *App) GetTeamWinRate(name string, uname string, idu string, heroIds string, page int, pageSize int, minLevel int, minHp int) string {
 	type TeamWinRate struct {
 		PlayerName   string  `json:"player_name"`
 		Hero1Id      int64   `json:"hero1_id"`
@@ -571,6 +605,45 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 	unamePattern := "%" + uname + "%"
 	iduPattern := "%" + idu + "%"
 
+	heroFilter := ""
+	heroArgs := []interface{}{}
+	if heroIds != "" {
+		ids := strings.Split(heroIds, ",")
+		var parsedIds []interface{}
+		for _, idStr := range ids {
+			id, err := strconv.Atoi(strings.TrimSpace(idStr))
+			if err != nil {
+				continue
+			}
+			parsedIds = append(parsedIds, id)
+		}
+		placeholders := strings.Repeat("?,", len(parsedIds))
+		placeholders = placeholders[:len(placeholders)-1]
+		heroFilter = fmt.Sprintf(" AND (attack_hero1_id IN (%s) OR attack_hero2_id IN (%s) OR attack_hero3_id IN (%s))", placeholders, placeholders, placeholders)
+		heroArgs = append(heroArgs, parsedIds...)
+		heroArgs = append(heroArgs, parsedIds...)
+		heroArgs = append(heroArgs, parsedIds...)
+	}
+	heroFilterDefend := ""
+	heroArgsDefend := []interface{}{}
+	if heroIds != "" {
+		ids := strings.Split(heroIds, ",")
+		var parsedIds []interface{}
+		for _, idStr := range ids {
+			id, err := strconv.Atoi(strings.TrimSpace(idStr))
+			if err != nil {
+				continue
+			}
+			parsedIds = append(parsedIds, id)
+		}
+		placeholders := strings.Repeat("?,", len(parsedIds))
+		placeholders = placeholders[:len(placeholders)-1]
+		heroFilterDefend = fmt.Sprintf(" AND (defend_hero1_id IN (%s) OR defend_hero2_id IN (%s) OR defend_hero3_id IN (%s))", placeholders, placeholders, placeholders)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+	}
+
 	// 攻方: result IN (1,2,3,4,10,18,19) 胜, result=0 负, result IN (6,7,8,13) 平
 	// 守方: result=0 胜, result IN (1,2,3,4,10,18,19) 负, result IN (6,7,8,13) 平
 	baseQuery := `WITH battle_stats AS (
@@ -602,6 +675,7 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 			AND LENGTH(all_skill_info) - LENGTH(REPLACE(all_skill_info, ';', '')) = 6
 			AND LENGTH(REPLACE(all_skill_info, ',0,', ',')) = LENGTH(all_skill_info)
 			AND attack_name LIKE ? AND attack_union_name LIKE ? AND attack_idu LIKE ?
+			` + heroFilter + `
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 		UNION ALL
 		SELECT
@@ -632,6 +706,7 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 			AND LENGTH(all_skill_info) - LENGTH(REPLACE(all_skill_info, ';', '')) = 6
 			AND LENGTH(REPLACE(all_skill_info, ',0,', ',')) = LENGTH(all_skill_info)
 			AND defend_name LIKE ? AND defend_union_name LIKE ? AND defend_idu LIKE ?
+			` + heroFilterDefend + `
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 	),
 	aggregated AS (
@@ -658,8 +733,12 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 
 	args := []interface{}{
 		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
-		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
 	}
+	args = append(args, heroArgs...)
+	args = append(args,
+		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
+	)
+	args = append(args, heroArgsDefend...)
 
 	// 查询总数
 	var total int64
@@ -693,7 +772,7 @@ func (a *App) GetTeamWinRate(name string, uname string, idu string, page int, pa
 	}}.Success()
 }
 
-func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page int, pageSize int, minLevel int, minHp int) string {
+func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, heroIds string, page int, pageSize int, minLevel int, minHp int) string {
 	type TeamWinRateByTeam struct {
 		Hero1Id      int64   `json:"hero1_id"`
 		Hero2Id      int64   `json:"hero2_id"`
@@ -727,6 +806,45 @@ func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page i
 	unamePattern := "%" + uname + "%"
 	iduPattern := "%" + idu + "%"
 
+	heroFilter := ""
+	heroArgs := []interface{}{}
+	if heroIds != "" {
+		ids := strings.Split(heroIds, ",")
+		var parsedIds []interface{}
+		for _, idStr := range ids {
+			id, err := strconv.Atoi(strings.TrimSpace(idStr))
+			if err != nil {
+				continue
+			}
+			parsedIds = append(parsedIds, id)
+		}
+		placeholders := strings.Repeat("?,", len(parsedIds))
+		placeholders = placeholders[:len(placeholders)-1]
+		heroFilter = fmt.Sprintf(" AND (attack_hero1_id IN (%s) OR attack_hero2_id IN (%s) OR attack_hero3_id IN (%s))", placeholders, placeholders, placeholders)
+		heroArgs = append(heroArgs, parsedIds...)
+		heroArgs = append(heroArgs, parsedIds...)
+		heroArgs = append(heroArgs, parsedIds...)
+	}
+	heroFilterDefend := ""
+	heroArgsDefend := []interface{}{}
+	if heroIds != "" {
+		ids := strings.Split(heroIds, ",")
+		var parsedIds []interface{}
+		for _, idStr := range ids {
+			id, err := strconv.Atoi(strings.TrimSpace(idStr))
+			if err != nil {
+				continue
+			}
+			parsedIds = append(parsedIds, id)
+		}
+		placeholders := strings.Repeat("?,", len(parsedIds))
+		placeholders = placeholders[:len(placeholders)-1]
+		heroFilterDefend = fmt.Sprintf(" AND (defend_hero1_id IN (%s) OR defend_hero2_id IN (%s) OR defend_hero3_id IN (%s))", placeholders, placeholders, placeholders)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+		heroArgsDefend = append(heroArgsDefend, parsedIds...)
+	}
+
 	baseQuery := `WITH battle_stats AS (
 		SELECT
 			attack_name AS player_name,
@@ -755,6 +873,7 @@ func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page i
 			AND LENGTH(all_skill_info) - LENGTH(REPLACE(all_skill_info, ';', '')) = 6
 			AND LENGTH(REPLACE(all_skill_info, ',0,', ',')) = LENGTH(all_skill_info)
 			AND attack_name LIKE ? AND attack_union_name LIKE ? AND attack_idu LIKE ?
+			` + heroFilter + `
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 		UNION ALL
 		SELECT
@@ -784,6 +903,7 @@ func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page i
 			AND LENGTH(all_skill_info) - LENGTH(REPLACE(all_skill_info, ';', '')) = 6
 			AND LENGTH(REPLACE(all_skill_info, ',0,', ',')) = LENGTH(all_skill_info)
 			AND defend_name LIKE ? AND defend_union_name LIKE ? AND defend_idu LIKE ?
+			` + heroFilterDefend + `
 			AND npc = 0 AND result IN (0,1,2,3,4,6,7,8,10,13,18,19)
 	),
 	aggregated AS (
@@ -798,20 +918,24 @@ func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page i
 			MAX(hero3_star) AS hero3_star,
 			MAX(total_star) AS total_star,
 			MAX(time) AS last_time,
-			SUBSTR(MAX(time || '_' || all_skill_info), INSTR(MAX(time || '_' || all_skill_info), '_') + 1) AS all_skill_info,
-			SUBSTR(MAX(time || '_' || role), INSTR(MAX(time || '_' || role), '_') + 1) AS role,
+			all_skill_info,
+			role,
 			SUM(win) AS win_count,
 			SUM(loss) AS loss_count,
 			SUM(draw) AS draw_count,
 			COUNT(*) AS total_battles
 		FROM battle_stats
-		GROUP BY hero1_id, hero2_id, hero3_id
+		GROUP BY hero1_id, hero2_id, hero3_id, all_skill_info, role
 	)`
 
 	args := []interface{}{
 		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
-		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
 	}
+	args = append(args, heroArgs...)
+	args = append(args,
+		minLevel, minLevel, minLevel, minHp, minLevel, minLevel, minLevel, minHp, namePattern, unamePattern, iduPattern,
+	)
+	args = append(args, heroArgsDefend...)
 
 	dataQuery := baseQuery + ` SELECT hero1_id, hero2_id, hero3_id,
 		hero1_level, hero2_level, hero3_level, hero1_star, hero2_star, hero3_star,
@@ -833,23 +957,44 @@ func (a *App) GetTeamWinRateByTeam(name string, uname string, idu string, page i
 	}
 	merged := make(map[string]*teamAcc)
 	for _, r := range rawResults {
-		// 生成归一化 key: heroIDs + 排序后的战法
 		groups := strings.Split(r.AllSkillInfo, ";")
-		var skillParts []string
+		hero1Sub := ""
+		hero2Sub := ""
+		hero3Sub := ""
 		for _, g := range groups {
 			parts := strings.Split(g, ",")
-			if len(parts) < 6 {
+			if len(parts) < 7 {
 				continue
 			}
-			mainSkill := parts[1]
+			idx, err := strconv.Atoi(parts[0])
+			if err != nil {
+				continue
+			}
 			sub1 := parts[3]
 			sub2 := parts[5]
 			if sub1 > sub2 {
 				sub1, sub2 = sub2, sub1
 			}
-			skillParts = append(skillParts, mainSkill+"_"+sub1+"_"+sub2)
+			subKey := sub1 + "_" + sub2
+			if r.Role == "attack" {
+				if idx == 1 {
+					hero1Sub = subKey
+				} else if idx == 2 {
+					hero2Sub = subKey
+				} else if idx == 3 {
+					hero3Sub = subKey
+				}
+			} else if r.Role == "defend" {
+				if idx == 4 {
+					hero1Sub = subKey
+				} else if idx == 5 {
+					hero2Sub = subKey
+				} else if idx == 6 {
+					hero3Sub = subKey
+				}
+			}
 		}
-		key := fmt.Sprintf("%d_%d_%d|%s", r.Hero1Id, r.Hero2Id, r.Hero3Id, strings.Join(skillParts, "|"))
+		key := fmt.Sprintf("%d:%s|%d:%s|%d:%s", r.Hero1Id, hero1Sub, r.Hero2Id, hero2Sub, r.Hero3Id, hero3Sub)
 
 		if existing, ok := merged[key]; ok {
 			existing.TotalBattles += r.TotalBattles

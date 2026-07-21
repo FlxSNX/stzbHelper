@@ -14,6 +14,7 @@ import (
 var assets embed.FS
 
 func main() {
+	global.InitAppDir()
 	log.SetOutput(global.LogW)
 	go runNpcap()
 	// Create an instance of the app structure

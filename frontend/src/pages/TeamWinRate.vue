@@ -2,8 +2,9 @@
 import { ref, computed, h, watch } from 'vue'
 import { NCard, NButton, NInput, NInputNumber, NEmpty, NSpin, NTag, NPagination, NDataTable, useMessage } from 'naive-ui'
 import { GetTeamWinRate, GetTeamWinRateByTeam } from '../../wailsjs/go/main/App'
-import { Search, Swords, Image, Table, Users, Layers } from 'lucide-vue-next'
+import { Search, Swords, Image, Table, Users, Layers, Star, Download, ArrowUpDown } from 'lucide-vue-next'
 import { herocfg, skillcfg } from '../cfg'
+import * as XLSX from 'xlsx'
 
 const heroMap = JSON.parse(herocfg)
 const skillMap = JSON.parse(skillcfg)
@@ -15,12 +16,15 @@ const results = ref([])
 const searchName = ref('')
 const searchUnion = ref('')
 const searchIdu = ref('')
+const searchHeroName = ref('')
 const minLevel = ref(30)
 const minHp = ref(20000)
 
 const hasSearched = ref(false)
 const useImageMode = ref(true)
+const useBigImage = ref(false)
 const groupByPlayer = ref(true)
+const sortByWinRate = ref(false)
 const page = ref(1)
 const pageSize = ref(50)
 const total = ref(0)
@@ -31,8 +35,9 @@ const doSearch = (newPage) => {
     loading.value = true
     results.value = []
     hasSearched.value = true
+    const heroIds = getHeroIdsByName(searchHeroName.value)
     const apiFn = groupByPlayer.value ? GetTeamWinRate : GetTeamWinRateByTeam
-    apiFn(searchName.value, searchUnion.value, searchIdu.value, page.value, pageSize.value, minLevel.value, minHp.value).then(v => {
+    apiFn(searchName.value, searchUnion.value, searchIdu.value, heroIds, page.value, pageSize.value, minLevel.value, minHp.value).then(v => {
         let resp = JSON.parse(v)
         if (resp.code == 200) {
             results.value = resp.data.list || []
@@ -51,6 +56,19 @@ const resolveHeroId = (id) => {
     if (!id) return id
     const num = Number(id)
     return num >= 130000 ? num - 30000 : num
+}
+
+const getHeroIdsByName = (name) => {
+    if (!name || !name.trim()) return ''
+    const trimmed = name.trim()
+    const exactIds = []
+    const fuzzyIds = []
+    for (const [id, hero] of Object.entries(heroMap)) {
+        if (hero.name === trimmed) exactIds.push(id)
+        else if (hero.name.includes(trimmed)) fuzzyIds.push(id)
+    }
+    const ids = exactIds.length > 0 ? exactIds : fuzzyIds
+    return ids.join(',')
 }
 
 const getHeroIconId = (id) => {
@@ -153,6 +171,14 @@ const groupedResults = computed(() => {
 })
 
 const tableData = computed(() => results.value)
+
+const sortedResults = computed(() => {
+    if (!sortByWinRate.value || groupByPlayer.value) return results.value
+    return [...results.value].sort((a, b) => {
+        if (b.win_rate !== a.win_rate) return b.win_rate - a.win_rate
+        return b.total_battles - a.total_battles
+    })
+})
 
 watch(groupByPlayer, () => {
     page.value = 1
@@ -370,6 +396,49 @@ const teamColumns = [
 ]
 
 const currentColumns = computed(() => groupByPlayer.value ? playerColumns : teamColumns)
+
+const exportExcel = () => {
+    if (results.value.length === 0) {
+        nmessage.warning('没有可导出的数据')
+        return
+    }
+    const data = results.value.map(row => {
+        const heroes = [1, 2, 3].map(i => `${getHeroName(row[`hero${i}_id`])}(${getHeroType(row[`hero${i}_id`])})`).join(' / ')
+        const groups = parseSkillInfo(row.all_skill_info, row.role)
+        const skillLines = groups.map(g => {
+            const names = g.skills.slice(1).filter(s => s.id && s.id !== '0').map(s => getSkillName(s.id))
+            return names.join('/')
+        }).filter(Boolean)
+        const lossRate = row.total_battles > 0 ? Math.round(row.loss_count / row.total_battles * 1000) / 10 : 0
+        const drawRate = row.total_battles > 0 ? Math.round(row.draw_count / row.total_battles * 1000) / 10 : 0
+        const base = {
+            '队伍': heroes,
+            '战法': skillLines.join('\n'),
+            '红度': row.total_star,
+            '总场次': row.total_battles,
+            '胜': row.win_count,
+            '负': row.loss_count,
+            '平': row.draw_count,
+            '胜率(%)': row.win_rate,
+            '负率(%)': lossRate,
+            '平局率(%)': drawRate,
+            '最近战斗': formatTime(row.last_time),
+        }
+        if (groupByPlayer.value) {
+            return { '玩家': row.player_name, ...base, '队伍ID': row.idu }
+        } else {
+            return { ...base, '玩家': row.players }
+        }
+    })
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '队伍胜率')
+    const now = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    const filename = `队伍胜率_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`
+    XLSX.writeFile(wb, filename)
+    nmessage.success('导出成功')
+}
 </script>
 
 <template>
@@ -386,6 +455,7 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                 <n-input v-model:value="searchName" placeholder="玩家名称" clearable @keyup.enter="doSearch" />
                 <n-input v-model:value="searchUnion" placeholder="同盟名称" clearable @keyup.enter="doSearch" />
                 <n-input v-model:value="searchIdu" placeholder="队伍 ID" clearable @keyup.enter="doSearch" />
+                <n-input v-model:value="searchHeroName" placeholder="武将名称" clearable @keyup.enter="doSearch" />
                 <n-button type="primary" @click="doSearch()" :loading="loading">
                     <template #icon><Search :size="16" /></template>
                     查询
@@ -394,9 +464,21 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                     <template #icon><Users :size="16" /></template>
                     {{ groupByPlayer ? '按玩家' : '按队伍' }}
                 </n-button>
+                <n-button quaternary v-if="!groupByPlayer" :type="sortByWinRate ? 'primary' : 'default'" @click="sortByWinRate = !sortByWinRate" title="按胜率排序">
+                    <template #icon><ArrowUpDown :size="16" /></template>
+                    {{ sortByWinRate ? '胜率排序' : '默认排序' }}
+                </n-button>
                 <n-button quaternary :type="useImageMode ? 'primary' : 'default'" @click="useImageMode = !useImageMode">
                     <template #icon><Image :size="16" /></template>
                     {{ useImageMode ? '图片' : '表格' }}
+                </n-button>
+                <n-button quaternary v-if="useImageMode" :type="useBigImage ? 'primary' : 'default'" @click="useBigImage = !useBigImage" :title="useBigImage ? '切换小图' : '切换大图'">
+                    <template #icon><Star :size="16" /></template>
+                    {{ useBigImage ? '大图' : '小图' }}
+                </n-button>
+                <n-button quaternary @click="exportExcel" :disabled="results.length === 0">
+                    <template #icon><Download :size="16" /></template>
+                    导出
                 </n-button>
             </div>
             <div class="filter-bar">
@@ -460,7 +542,42 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
                                 <span class="team-time">{{ formatTime(team.last_time) }}</span>
                             </div>
 
-                            <div class="hero-row hero-row--big">
+                            <div class="hero-row" v-if="!useBigImage">
+                                <div class="hero-slot" v-for="i in 3" :key="i">
+                                    <div class="hero-avatar">
+                                        <img v-if="team[`hero${i}_id`]"
+                                            :src="`https://g0.gph.netease.com/ngsocial/community/stzb/cn/cards/cut/card_small_${getHeroIconId(team[`hero${i}_id`])}.jpg?gameid=g10`"
+                                            @error="$event.target.style.display='none'" />
+                                        <div class="hero-placeholder" v-else>?</div>
+                                    </div>
+                                    <div class="hero-info">
+                                        <span class="hero-name">{{ getHeroName(team[`hero${i}_id`]) }}</span>
+                                        <span class="hero-meta">
+                                            <n-tag v-if="getHeroCountry(team[`hero${i}_id`])" size="tiny" :bordered="false">{{ getHeroCountry(team[`hero${i}_id`]) }}</n-tag>
+                                            <n-tag v-if="getHeroType(team[`hero${i}_id`])" size="tiny" :bordered="false" type="info">{{ getHeroType(team[`hero${i}_id`]) }}</n-tag>
+                                            <span class="hero-level">Lv.{{ team[`hero${i}_level`] }}</span>
+                                            <span class="hero-star">{{ team[`hero${i}_star`] }}红</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="skill-section" v-if="!useBigImage && team.all_skill_info">
+                                <div class="skill-hero-row">
+                                    <div class="skill-hero-card" v-for="(group, gi) in parseSkillInfo(team.all_skill_info, team.role)" :key="gi">
+                                        <template v-for="(skill, si) in group.skills" :key="si">
+                                        <div class="skill-slot" v-if="skill && skill.id && skill.id !== '0'">
+                                            <span class="skill-meta">
+                                                <n-tag v-if="getSkillQuality(skill.id)" size="tiny" :bordered="false" :type="getSkillQuality(skill.id) === 'S' ? 'warning' : getSkillQuality(skill.id) === 'A' ? 'info' : 'default'">{{ getSkillQuality(skill.id) }}</n-tag>
+                                                <n-tag v-if="getSkillType(skill.id)" size="tiny" :bordered="false">{{ getSkillType(skill.id) }}</n-tag>
+                                                <span class="skill-name">{{ getSkillName(skill.id) }}</span>
+                                                <span class="skill-level">Lv.{{ skill.level }}</span>
+                                            </span>
+                                        </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hero-row hero-row--big" v-if="useBigImage">
                                 <div class="hero-big" v-for="i in 3" :key="i">
                                     <div class="hero-big-img">
                                         <img v-if="team[`hero${i}_id`]"
@@ -530,13 +647,48 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 
                 <!-- 大图模式 按队伍组合 -->
                 <template v-else>
-                    <div class="team-card" v-for="(team, key) in results" :key="key">
+                    <div class="team-card" v-for="(team, key) in sortedResults" :key="key">
                         <div class="team-header">
                             <span class="team-idu" v-if="team.players">玩家: {{ team.players }}</span>
                             <span class="team-time">{{ formatTime(team.last_time) }}</span>
                         </div>
 
-                        <div class="hero-row hero-row--big">
+                        <div class="hero-row" v-if="!useBigImage">
+                            <div class="hero-slot" v-for="i in 3" :key="i">
+                                <div class="hero-avatar">
+                                    <img v-if="team[`hero${i}_id`]"
+                                        :src="`https://g0.gph.netease.com/ngsocial/community/stzb/cn/cards/cut/card_small_${getHeroIconId(team[`hero${i}_id`])}.jpg?gameid=g10`"
+                                        @error="$event.target.style.display='none'" />
+                                    <div class="hero-placeholder" v-else>?</div>
+                                </div>
+                                <div class="hero-info">
+                                    <span class="hero-name">{{ getHeroName(team[`hero${i}_id`]) }}</span>
+                                    <span class="hero-meta">
+                                        <n-tag v-if="getHeroCountry(team[`hero${i}_id`])" size="tiny" :bordered="false">{{ getHeroCountry(team[`hero${i}_id`]) }}</n-tag>
+                                        <n-tag v-if="getHeroType(team[`hero${i}_id`])" size="tiny" :bordered="false" type="info">{{ getHeroType(team[`hero${i}_id`]) }}</n-tag>
+                                        <span class="hero-level">Lv.{{ team[`hero${i}_level`] }}</span>
+                                        <span class="hero-star">{{ team[`hero${i}_star`] }}红</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-section" v-if="!useBigImage && team.all_skill_info">
+                            <div class="skill-hero-row">
+                                <div class="skill-hero-card" v-for="(group, gi) in parseSkillInfo(team.all_skill_info, team.role)" :key="gi">
+                                    <template v-for="(skill, si) in group.skills" :key="si">
+                                    <div class="skill-slot" v-if="skill && skill.id && skill.id !== '0'">
+                                        <span class="skill-meta">
+                                            <n-tag v-if="getSkillQuality(skill.id)" size="tiny" :bordered="false" :type="getSkillQuality(skill.id) === 'S' ? 'warning' : getSkillQuality(skill.id) === 'A' ? 'info' : 'default'">{{ getSkillQuality(skill.id) }}</n-tag>
+                                            <n-tag v-if="getSkillType(skill.id)" size="tiny" :bordered="false">{{ getSkillType(skill.id) }}</n-tag>
+                                            <span class="skill-name">{{ getSkillName(skill.id) }}</span>
+                                            <span class="skill-level">Lv.{{ skill.level }}</span>
+                                        </span>
+                                    </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hero-row hero-row--big" v-if="useBigImage">
                             <div class="hero-big" v-for="i in 3" :key="i">
                                 <div class="hero-big-img">
                                     <img v-if="team[`hero${i}_id`]"
@@ -746,8 +898,112 @@ const currentColumns = computed(() => groupByPlayer.value ? playerColumns : team
 .hero-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    &--big {
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+}
+
+.hero-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--color-bg);
+    border-radius: 8px;
+}
+
+.hero-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--color-surface-hover);
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hero-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.hero-level {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.hero-star {
+    font-size: 12px;
+    color: #f59e0b;
+    font-weight: 500;
+}
+
+.skill-section {
+    margin-bottom: 12px;
+}
+
+.skill-hero-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.skill-hero-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    background: var(--color-bg);
+    border-radius: 8px;
+}
+
+.skill-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.skill-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.skill-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.skill-level {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
 }
 
 .hero-big {
